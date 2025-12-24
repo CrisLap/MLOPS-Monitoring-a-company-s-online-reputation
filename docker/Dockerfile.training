@@ -1,0 +1,35 @@
+# Training image for the sentiment model
+# Usage:
+#  - Build (CPU):
+#      docker build -f docker/Dockerfile.training -t sentiment-training .
+#  - Build (GPU):
+#      docker build --build-arg BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04 -f docker/Dockerfile.training -t sentiment-training:gpu .
+#  - Run (example):
+#      docker run --rm -e MLFLOW_TRACKING_URI="http://your-mlflow:5000" -v $(pwd)/models:/app/models sentiment-training
+
+ARG BASE_IMAGE=python:3.10
+FROM ${BASE_IMAGE}
+
+LABEL maintainer="repo-owner@example.com"
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# copy requirements and install
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# copy training code and helpers
+COPY training/ training/
+COPY data_drift_detection/ data_drift_detection/
+COPY app/ app/
+COPY monitoring/ monitoring/
+COPY tests/ tests/
+
+# Default workdir for training
+WORKDIR /app
+
+EXPOSE 8000
+
+# Default command: run the training script. Can be overridden with `docker run <image> python training/train.py`.
+CMD ["python", "training/train.py"]

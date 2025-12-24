@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test & cache
+.pytest_cache/
+coverage/
+htmlcov/
+
+# ML / artifacts / local runs
+models/
+mlruns/
+drift/recent.npz
+drift/recent.json
+
+# Secrets / env files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Optional: large dataset / DB files
+*.sqlite

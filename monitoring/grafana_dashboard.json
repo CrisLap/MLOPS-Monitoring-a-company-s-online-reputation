@@ -1,0 +1,50 @@
+{
+  "dashboard": {
+    "title": "Sentiment Monitoring Dashboard",
+    "timezone": "browser",
+    "panels": [
+      {
+        "type": "timeseries",
+        "title": "API Request Rate",
+        "targets": [
+          {
+            "expr": "rate(sentiment_requests_total[1m])",
+            "legendFormat": "req/sec"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "API Latency (p95)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(sentiment_request_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95 latency"
+          }
+        ]
+      },
+      {
+        "type": "piechart",
+        "title": "Sentiment Distribution",
+        "targets": [
+          {
+            "expr": "sum(sentiment_predictions_total) by (label)",
+            "legendFormat": "{{label}}"
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "title": "Sentiment Drift Signal",
+        "targets": [
+          {
+            "expr": "sentiment_drift_score",
+            "legendFormat": "drift score"
+          }
+        ]
+      }
+    ],
+    "schemaVersion": 38,
+    "version": 1
+  }
+}

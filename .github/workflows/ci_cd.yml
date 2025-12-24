@@ -1,0 +1,19 @@
+name: CI-CD
+
+on: [push]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - run: pip install -r requirements.txt
+      - run: pip install black flake8 pytest
+      - run: black --check .
+      - run: flake8 .
+      - run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest
