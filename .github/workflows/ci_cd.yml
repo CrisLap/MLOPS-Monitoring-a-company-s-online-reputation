@@ -12,8 +12,8 @@ on:
 env:
   PYTHON_VERSION: "3.10"
   REGISTRY: ghcr.io
-  IMAGE_NAME_API: ${{ github.repository | lower }}/api
-  IMAGE_NAME_TRAINING: ${{ github.repository | lower }}/training
+  IMAGE_NAME_API: crislap/mlops-monitoring-a-company-s-online-reputation/api
+  IMAGE_NAME_TRAINING: crislap/mlops-monitoring-a-company-s-online-reputation/training
 
 jobs:
   lint-and-validate:
