@@ -1,7 +1,7 @@
 import mlflow
 import numpy as np
 import logging
-from detector import load_baseline, detect_label_drift, detect_embedding_drift
+from data_drift_detection.detector import load_baseline, detect_label_drift, detect_embedding_drift
 from metrics import DRIFT_SCORE
 
 logger = logging.getLogger(__name__)
