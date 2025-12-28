@@ -71,7 +71,12 @@ def test_full_train_flow_creates_model_and_logs(monkeypatch, tmp_path):
     monkeypatch.setattr(
         train_module,
         "mlflow",
-        types.SimpleNamespace(start_run=fake_start_run, log_artifact=fake_log_artifact),
+        types.SimpleNamespace(
+            start_run=fake_start_run,
+            log_artifact=fake_log_artifact,
+            log_params=lambda *args, **kwargs: None,
+            log_metrics=lambda *args, **kwargs: None,
+        ),
     )
 
     # ensure models dir is unique for test
