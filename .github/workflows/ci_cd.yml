@@ -461,9 +461,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Hugging Face
-        uses: huggingface/huggingface_hub@main
-        with:
-          huggingface_token: ${{ secrets.HF_TOKEN }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          pip install --upgrade huggingface_hub
+          huggingface-cli login --token "$HF_TOKEN"
 
       - name: Build API image for HF Space
         run: |
