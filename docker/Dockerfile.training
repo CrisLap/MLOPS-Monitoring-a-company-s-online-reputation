@@ -16,6 +16,14 @@ LABEL description="Sentiment analysis training container"
 
 ENV PYTHONUNBUFFERED=1
 
+
+# Install system dependencies (REQUIRED for fasttext)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+build-essential \
+g++ \
+make \
+&& rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
