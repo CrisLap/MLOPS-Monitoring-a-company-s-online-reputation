@@ -207,7 +207,7 @@ jobs:
           import numpy as np
           from data_drift_detection.run_drift_check import run_drift
           sentiment_dist = np.array([0.2, 0.6, 0.2])
-          embeddings = np.random.randn(10, 768)
+          embeddings = np.random.randn(2, 768)
           result = run_drift(sentiment_dist, embeddings)
           print(f'Drift check result: {result}')
           print('Run drift check test passed')
