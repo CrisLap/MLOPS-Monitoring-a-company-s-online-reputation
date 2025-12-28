@@ -12,8 +12,8 @@ on:
 env:
   PYTHON_VERSION: "3.10"
   REGISTRY: ghcr.io
-  IMAGE_NAME_API: ${{ github.repository | toLowerCase  }}/api
-  IMAGE_NAME_TRAINING: ${{ github.repository | toLowerCase  }}/training
+  IMAGE_NAME_API: ${{ github.repository | lower }}/api
+  IMAGE_NAME_TRAINING: ${{ github.repository | lower }}/training
 
 jobs:
   lint-and-validate:
