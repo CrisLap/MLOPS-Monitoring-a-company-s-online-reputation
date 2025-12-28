@@ -148,7 +148,7 @@ jobs:
           python -c "
           import sqlalchemy as sa
           engine = sa.create_engine('postgresql://test_user:test_pass@localhost:5432/test_db')
-          with engine.connect() as conn:
+          with engine.begin() as conn:
               conn.execute(sa.text('''
                   CREATE TABLE IF NOT EXISTS drift_data (
                       id SERIAL PRIMARY KEY,
@@ -157,8 +157,8 @@ jobs:
                       created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
                   );
               '''))
-              conn.commit()
           "
+
 
       - name: Run integration tests
         env:
