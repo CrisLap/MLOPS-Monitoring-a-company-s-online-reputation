@@ -440,7 +440,7 @@ jobs:
       - name: Test API image
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         run: |
-          IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ github.sha }}
+          IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
           docker run -d --name test-api -p 8000:8000 $IMAGE_TAG
           sleep 10
           curl -f http://localhost:8000/docs || echo "API health check"
