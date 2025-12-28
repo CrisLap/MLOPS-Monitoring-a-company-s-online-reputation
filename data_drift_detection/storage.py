@@ -61,6 +61,7 @@ def load_from_mlflow():
                     result = _load_npz_file(fp)
                     # Clean up temp directory
                     import shutil
+
                     if temp_dir and os.path.exists(temp_dir):
                         shutil.rmtree(temp_dir, ignore_errors=True)
                     return result
@@ -73,6 +74,7 @@ def load_from_mlflow():
                     result = np.array(d["sentiment_dist"]), np.array(d["embeddings"])
                     # Clean up temp directory
                     import shutil
+
                     if temp_dir and os.path.exists(temp_dir):
                         shutil.rmtree(temp_dir, ignore_errors=True)
                     return result
@@ -80,8 +82,9 @@ def load_from_mlflow():
         # Ensure cleanup even if an error occurs
         if temp_dir and os.path.exists(temp_dir):
             import shutil
+
             shutil.rmtree(temp_dir, ignore_errors=True)
-    
+
     return None
 
 

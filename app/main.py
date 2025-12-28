@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Sentiment Analysis API",
     description="API for sentiment analysis with drift monitoring",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Add CORS middleware
@@ -51,15 +51,15 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(
         f"Unhandled exception: {exc}",
         exc_info=True,
-        extra={"request_id": request_id, "path": request.url.path}
+        extra={"request_id": request_id, "path": request.url.path},
     )
     return JSONResponse(
         status_code=500,
         content={
             "error": "Internal server error",
             "request_id": request_id,
-            "message": "An unexpected error occurred"
-        }
+            "message": "An unexpected error occurred",
+        },
     )
 
 
@@ -69,10 +69,7 @@ async def health_check() -> Dict[str, Any]:
     Health check endpoint for load balancers and monitoring.
     Returns 200 if the service is running.
     """
-    return {
-        "status": "healthy",
-        "service": "sentiment-analysis-api"
-    }
+    return {"status": "healthy", "service": "sentiment-analysis-api"}
 
 
 @app.get("/ready")
@@ -88,12 +85,12 @@ async def readiness_check() -> Dict[str, Any]:
         model_loaded = getattr(inference, "_model_loaded", False)
     except Exception:
         model_loaded = False
-    
+
     return {
         "status": "ready",
         "service": "sentiment-analysis-api",
         "model_loaded": model_loaded,
-        "fallback_available": True
+        "fallback_available": True,
     }
 
 
@@ -115,7 +112,4 @@ def predict(req: SentimentRequest):
     except Exception as e:
         logger.error(f"Prediction error: {e}", exc_info=True)
         REQUEST_LATENCY.observe(time.time() - start)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prediction failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")

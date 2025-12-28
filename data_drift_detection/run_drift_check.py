@@ -16,14 +16,14 @@ def run_drift(sentiment_dist, embeddings):
     Computes label and embedding drift against stored baselines, logs metrics
     to MLflow, updates the global drift score, and returns True if combined
     drift exceeds predefined thresholds.
-    
+
     Args:
         sentiment_dist: Current sentiment distribution array
         embeddings: Current embeddings array
-        
+
     Returns:
         bool: True if drift detected, False otherwise
-        
+
     Raises:
         FileNotFoundError: If baseline file doesn't exist
         ValueError: If inputs are invalid or baseline is malformed
@@ -36,15 +36,15 @@ def run_drift(sentiment_dist, embeddings):
     except ValueError as e:
         logger.error(f"Invalid baseline: {e}")
         raise
-    
+
     # Validate inputs
     if sentiment_dist is None or embeddings is None:
         raise ValueError("sentiment_dist and embeddings must not be None")
-    
+
     try:
         sentiment_dist = np.asarray(sentiment_dist)
         embeddings = np.asarray(embeddings)
-        
+
         if sentiment_dist.ndim != 1:
             raise ValueError(f"sentiment_dist must be 1D, got {sentiment_dist.ndim}D")
         if embeddings.ndim != 2:

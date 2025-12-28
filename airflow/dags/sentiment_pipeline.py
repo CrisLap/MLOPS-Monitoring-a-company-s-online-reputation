@@ -35,7 +35,7 @@ def prepare_data(**context):
     If not available, fall back to MLflow artifacts, then DB, then files on disk.
 
     The task will push the arrays to XCom (as lists) under the same keys.
-    
+
     Raises:
         RuntimeError: If no data source is available
     """
@@ -62,7 +62,7 @@ def prepare_data(**context):
     # Validate loaded data
     if sentiment_dist is None or embeddings is None:
         raise RuntimeError("Loaded data contains None values")
-    
+
     if len(sentiment_dist) == 0 or len(embeddings) == 0:
         raise RuntimeError("Loaded data is empty")
 

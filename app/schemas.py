@@ -15,7 +15,7 @@ class SentimentRequest(BaseModel):
         min_length=1,
         max_length=10000,  # Limit input size to prevent DoS
         example="I love this product",
-        description="Text to analyze for sentiment (max 10000 characters)"
+        description="Text to analyze for sentiment (max 10000 characters)",
     )
 
 

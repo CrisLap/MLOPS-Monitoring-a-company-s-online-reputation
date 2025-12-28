@@ -38,16 +38,16 @@ def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
     Converts the training split to FastText format, trains the model with
     specified hyperparameters, saves the model to disk, and logs it as an
     MLflow artifact.
-    
+
     Args:
         epoch: Number of training epochs
         lr: Learning rate
         wordNgrams: Word n-gram size
         dim: Embedding dimension
-        
+
     Returns:
         Path: Path to saved model
-        
+
     Raises:
         ImportError: If fasttext is not available
         ValueError: If dataset loading fails or parameters are invalid
@@ -57,18 +57,18 @@ def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
         raise ImportError(
             "fasttext is not installed. Install it with: pip install fasttext"
         )
-    
+
     # Validate parameters
     if epoch <= 0 or lr <= 0 or dim <= 0:
         raise ValueError("epoch, lr, and dim must be positive")
-    
+
     try:
         dataset = load_data()
         train_ds = dataset["train"]
-        
+
         if not train_ds or len(train_ds) == 0:
             raise ValueError("Training dataset is empty")
-            
+
         logger.info(f"Loaded dataset with {len(train_ds)} training samples")
     except Exception as e:
         logger.error(f"Failed to load dataset: {e}")
@@ -90,22 +90,19 @@ def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
         try:
             with mlflow.start_run():
                 # Log hyperparameters
-                mlflow.log_params({
-                    "epoch": epoch,
-                    "lr": lr,
-                    "wordNgrams": wordNgrams,
-                    "dim": dim
-                })
-                
+                mlflow.log_params(
+                    {"epoch": epoch, "lr": lr, "wordNgrams": wordNgrams, "dim": dim}
+                )
+
                 # train supervised fastText model
                 logger.info("Starting model training...")
                 model = fasttext.train_supervised(
                     input=train_path, epoch=epoch, lr=lr, wordNgrams=wordNgrams, dim=dim
                 )
-                
+
                 logger.info("Training completed, saving model...")
                 model.save_model(str(MODEL_OUT))
-                
+
                 # Log the model artifact to MLflow
                 mlflow.log_artifact(str(MODEL_OUT))
                 logger.info(f"Model saved to {MODEL_OUT} and logged to MLflow")
