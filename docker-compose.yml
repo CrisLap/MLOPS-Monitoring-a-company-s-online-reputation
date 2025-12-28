@@ -1,21 +1,79 @@
 version: "3.8"
 
 services:
+  mlflow:
+    image: python:3.10-slim
+    container_name: sentiment-mlflow
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - ./mlflow:/mlflow
+    ports:
+      - "5000:5000"
+    command: >
+      sh -c "pip install mlflow &&
+             mlflow server --host 0.0.0.0 --port 5000
+             --backend-store-uri sqlite:///mlflow/mlflow.db
+             --default-artifact-root /mlflow/artifacts"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mlops-network
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: sentiment-api
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - ./models:/app/models:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mlops-network
+    restart: unless-stopped
+
   training:
     build:
       context: .
       dockerfile: docker/Dockerfile.training
     container_name: sentiment-training
     environment:
-      - MLFLOW_TRACKING_URI
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     volumes:
       - ./models:/app/models
-    ports:
-      - "8000:8000"
-    # By default the image runs `python training/train.py`; override if needed
-    command: ["python", "training/train.py"]
+      - ./mlflow:/mlflow:ro
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks:
+      - mlops-network
     restart: "no"
+    # Override command if needed: command: ["python", "training/train.py"]
+
+networks:
+  mlops-network:
+    driver: bridge
 
 volumes:
   models:
+    driver: local
+  mlflow-data:
     driver: local

@@ -1,0 +1,96 @@
+name: Training Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      epoch:
+        description: 'Number of training epochs'
+        required: false
+        default: '5'
+        type: string
+      lr:
+        description: 'Learning rate'
+        required: false
+        default: '0.1'
+        type: string
+  schedule:
+    # Run training weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+env:
+  PYTHON_VERSION: "3.10"
+  REGISTRY: ghcr.io
+  IMAGE_NAME_TRAINING: ${{ github.repository }}/training
+
+jobs:
+  train-model:
+    name: Train Sentiment Model
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install mlflow
+
+      - name: Start MLflow server
+        run: |
+          mkdir -p /tmp/mlflow
+          mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///tmp/mlflow.db --default-artifact-root /tmp/mlflow/artifacts &
+          sleep 10
+
+      - name: Wait for MLflow to be ready
+        run: |
+          timeout 60 bash -c 'until curl -f http://localhost:5000 || curl -f http://localhost:5000/health; do sleep 2; done' || echo "MLflow server starting"
+
+      - name: Run training
+        env:
+          MLFLOW_TRACKING_URI: http://localhost:5000
+          PYTHONPATH: ${{ github.workspace }}
+          EPOCH: ${{ github.event.inputs.epoch || '5' }}
+          LR: ${{ github.event.inputs.lr || '0.1' }}
+        run: |
+          python -c "
+          import training.train as train_module
+          epoch = int('$EPOCH')
+          lr = float('$LR')
+          model_path = train_module.train(epoch=epoch, lr=lr)
+          print(f'Training completed. Model saved to: {model_path}')
+          "
+
+      - name: Validate model artifact
+        run: |
+          if [ -f "models/sentiment_ft.bin" ]; then
+            echo "Model artifact created successfully"
+            ls -lh models/sentiment_ft.bin
+          else
+            echo "Warning: Model artifact not found"
+            exit 1
+          fi
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: trained-model
+          path: models/sentiment_ft.bin
+          retention-days: 30
+
+      - name: Build and push training image
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.training
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

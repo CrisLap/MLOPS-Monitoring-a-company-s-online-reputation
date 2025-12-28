@@ -7,27 +7,33 @@
 #  - Run (example):
 #      docker run --rm -e MLFLOW_TRACKING_URI="http://your-mlflow:5000" -v $(pwd)/models:/app/models sentiment-training
 
-ARG BASE_IMAGE=python:3.10
+ARG BASE_IMAGE=python:3.10-slim
 FROM ${BASE_IMAGE}
 
 LABEL maintainer="repo-owner@example.com"
+LABEL version="1.0"
+LABEL description="Sentiment analysis training container"
+
 ENV PYTHONUNBUFFERED=1
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 WORKDIR /app
 
-# copy requirements and install
+# Copy requirements first for better layer caching
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# copy training code and helpers
+# Copy only necessary code (exclude tests and monitoring from production image)
 COPY training/ training/
 COPY data_drift_detection/ data_drift_detection/
-COPY app/ app/
-COPY monitoring/ monitoring/
-COPY tests/ tests/
 
-# Default workdir for training
-WORKDIR /app
+# Change ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 8000
 

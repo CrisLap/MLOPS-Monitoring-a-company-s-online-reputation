@@ -10,7 +10,13 @@ class SentimentRequest(BaseModel):
     Contains the input text to be analyzed for sentiment.
     """
 
-    text: str = Field(..., min_length=1, example="I love this product")
+    text: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,  # Limit input size to prevent DoS
+        example="I love this product",
+        description="Text to analyze for sentiment (max 10000 characters)"
+    )
 
 
 class SentimentResponse(BaseModel):

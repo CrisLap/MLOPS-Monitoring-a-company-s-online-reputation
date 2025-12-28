@@ -1,12 +1,17 @@
 import mlflow
+import logging
+import os
 
 try:
     import fasttext
-except Exception:
+except ImportError:
     fasttext = None
+
 from .data_loader import load_data
 import tempfile
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 
@@ -33,29 +38,90 @@ def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
     Converts the training split to FastText format, trains the model with
     specified hyperparameters, saves the model to disk, and logs it as an
     MLflow artifact.
+    
+    Args:
+        epoch: Number of training epochs
+        lr: Learning rate
+        wordNgrams: Word n-gram size
+        dim: Embedding dimension
+        
+    Returns:
+        Path: Path to saved model
+        
+    Raises:
+        ImportError: If fasttext is not available
+        ValueError: If dataset loading fails or parameters are invalid
+        RuntimeError: If training fails
     """
-    dataset = load_data()
-    train_ds = dataset["train"]
+    if fasttext is None:
+        raise ImportError(
+            "fasttext is not installed. Install it with: pip install fasttext"
+        )
+    
+    # Validate parameters
+    if epoch <= 0 or lr <= 0 or dim <= 0:
+        raise ValueError("epoch, lr, and dim must be positive")
+    
+    try:
+        dataset = load_data()
+        train_ds = dataset["train"]
+        
+        if not train_ds or len(train_ds) == 0:
+            raise ValueError("Training dataset is empty")
+            
+        logger.info(f"Loaded dataset with {len(train_ds)} training samples")
+    except Exception as e:
+        logger.error(f"Failed to load dataset: {e}")
+        raise ValueError(f"Dataset loading failed: {e}")
 
     MODEL_OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", delete=False, encoding="utf-8"
-    ) as train_f:
-        _to_fasttext_format(train_ds, train_f.name)
-        train_path = train_f.name
+    # Create temporary file and ensure cleanup
+    train_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, encoding="utf-8", suffix=".txt"
+        ) as train_f:
+            _to_fasttext_format(train_ds, train_f.name)
+            train_path = train_f.name
 
-    with mlflow.start_run():
-        # train supervised fastText model
-        model = fasttext.train_supervised(
-            input=train_path, epoch=epoch, lr=lr, wordNgrams=wordNgrams, dim=dim
-        )
-        model.save_model(str(MODEL_OUT))
-        # Log the model artifact to MLflow (user
-        # must set MLFLOW_TRACKING_URI to track remotely)
-        mlflow.log_artifact(str(MODEL_OUT))
+        logger.info(f"Created training file: {train_path}")
 
-    return MODEL_OUT
+        try:
+            with mlflow.start_run():
+                # Log hyperparameters
+                mlflow.log_params({
+                    "epoch": epoch,
+                    "lr": lr,
+                    "wordNgrams": wordNgrams,
+                    "dim": dim
+                })
+                
+                # train supervised fastText model
+                logger.info("Starting model training...")
+                model = fasttext.train_supervised(
+                    input=train_path, epoch=epoch, lr=lr, wordNgrams=wordNgrams, dim=dim
+                )
+                
+                logger.info("Training completed, saving model...")
+                model.save_model(str(MODEL_OUT))
+                
+                # Log the model artifact to MLflow
+                mlflow.log_artifact(str(MODEL_OUT))
+                logger.info(f"Model saved to {MODEL_OUT} and logged to MLflow")
+        except Exception as e:
+            logger.error(f"Training failed: {e}", exc_info=True)
+            raise RuntimeError(f"Model training failed: {e}")
+
+        return MODEL_OUT
+    finally:
+        # Clean up temporary file
+        if train_path and os.path.exists(train_path):
+            try:
+                os.unlink(train_path)
+                logger.debug(f"Cleaned up temporary file: {train_path}")
+            except Exception as e:
+                logger.warning(f"Failed to clean up temporary file {train_path}: {e}")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import json
 import logging
 import numpy as np
 import tempfile
+import shutil
 from pathlib import Path
 import os
 
@@ -31,36 +32,56 @@ def load_from_mlflow():
         return None
 
     client = MlflowClient()
+    temp_dir = None
 
     try:
-        runs = client.search_runs(
-            experiment_ids=None,
-            filter_string="",
-            max_results=100,
-            order_by=["attributes.start_time desc"],
-        )
-    except Exception:
-        runs = client.search_runs(
-            experiment_ids=None, filter_string="", max_results=100
-        )
-
-    for r in runs:
-        run_id = r.info.run_id
         try:
-            arts = client.list_artifacts(run_id, path="drift")
+            runs = client.search_runs(
+                experiment_ids=None,
+                filter_string="",
+                max_results=100,
+                order_by=["attributes.start_time desc"],
+            )
         except Exception:
-            arts = []
-        for a in arts:
-            if a.path.endswith("recent.npz") or a.path == "recent.npz":
-                dst = tempfile.mkdtemp()
-                fp = client.download_artifacts(run_id, a.path, dst)
-                return _load_npz_file(fp)
-            if a.path.endswith("recent.json") or a.path == "recent.json":
-                dst = tempfile.mkdtemp()
-                fp = client.download_artifacts(run_id, a.path, dst)
-                with open(fp) as f:
-                    d = json.load(f)
-                return np.array(d["sentiment_dist"]), np.array(d["embeddings"])
+            runs = client.search_runs(
+                experiment_ids=None, filter_string="", max_results=100
+            )
+
+        for r in runs:
+            run_id = r.info.run_id
+            try:
+                arts = client.list_artifacts(run_id, path="drift")
+            except Exception:
+                arts = []
+            for a in arts:
+                if a.path.endswith("recent.npz") or a.path == "recent.npz":
+                    if temp_dir is None:
+                        temp_dir = tempfile.mkdtemp()
+                    fp = client.download_artifacts(run_id, a.path, temp_dir)
+                    result = _load_npz_file(fp)
+                    # Clean up temp directory
+                    import shutil
+                    if temp_dir and os.path.exists(temp_dir):
+                        shutil.rmtree(temp_dir, ignore_errors=True)
+                    return result
+                if a.path.endswith("recent.json") or a.path == "recent.json":
+                    if temp_dir is None:
+                        temp_dir = tempfile.mkdtemp()
+                    fp = client.download_artifacts(run_id, a.path, temp_dir)
+                    with open(fp) as f:
+                        d = json.load(f)
+                    result = np.array(d["sentiment_dist"]), np.array(d["embeddings"])
+                    # Clean up temp directory
+                    import shutil
+                    if temp_dir and os.path.exists(temp_dir):
+                        shutil.rmtree(temp_dir, ignore_errors=True)
+                    return result
+    finally:
+        # Ensure cleanup even if an error occurs
+        if temp_dir and os.path.exists(temp_dir):
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+    
     return None
 
 

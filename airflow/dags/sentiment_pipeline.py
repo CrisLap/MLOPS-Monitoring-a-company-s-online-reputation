@@ -10,12 +10,12 @@ from data_drift_detection.storage import load_from_storage
 # Import the run_drift function
 try:
     from data_drift_detection.run_drift_check import run_drift
-except Exception:
-    try:
-        from drift.run_drift import run_drift
-    except Exception as e:
-        run_drift = None
-        logging.warning("Could not import run_drift: %s", e)
+except ImportError as e:
+    run_drift = None
+    logging.error(
+        f"Failed to import run_drift from data_drift_detection.run_drift_check: {e}. "
+        "Drift checking will not be available."
+    )
 
 DEFAULT_ARGS = {
     "owner": "airflow",
@@ -35,6 +35,9 @@ def prepare_data(**context):
     If not available, fall back to MLflow artifacts, then DB, then files on disk.
 
     The task will push the arrays to XCom (as lists) under the same keys.
+    
+    Raises:
+        RuntimeError: If no data source is available
     """
     ti = context["ti"]
 
@@ -44,8 +47,24 @@ def prepare_data(**context):
     if s is not None and e is not None:
         sentiment_dist = np.array(s)
         embeddings = np.array(e)
+        logging.info("Loaded data from XCom")
     else:
-        sentiment_dist, embeddings = load_from_storage()
+        logging.info("XCom data not available, trying storage fallback")
+        result = load_from_storage()
+        if result is None:
+            raise RuntimeError(
+                "No data source available. Tried XCom, MLflow, DB, and disk. "
+                "Please ensure at least one data source is configured."
+            )
+        sentiment_dist, embeddings = result
+        logging.info("Loaded data from storage fallback")
+
+    # Validate loaded data
+    if sentiment_dist is None or embeddings is None:
+        raise RuntimeError("Loaded data contains None values")
+    
+    if len(sentiment_dist) == 0 or len(embeddings) == 0:
+        raise RuntimeError("Loaded data is empty")
 
     # push canonical arrays (JSON-safe lists) to XCom for downstream
     ti.xcom_push(key="sentiment_dist", value=sentiment_dist.tolist())
@@ -97,10 +116,11 @@ with DAG(
     "sentiment_pipeline",
     default_args=DEFAULT_ARGS,
     description="Drift monitoring and conditional retraining for sentiment",
-    schedule_interval="@daily",
+    schedule="@daily",  # Use 'schedule' instead of deprecated 'schedule_interval'
     start_date=datetime(2025, 1, 1),
     catchup=False,
     max_active_runs=1,
+    tags=["sentiment", "drift", "mlops"],
 ) as dag:
 
     prepare = PythonOperator(
