@@ -6,7 +6,7 @@ from data_drift_detection.detector import (
     detect_label_drift,
     detect_embedding_drift,
 )
-from metrics import DRIFT_SCORE
+from data_drift_detection.metrics import DRIFT_SCORE
 
 logger = logging.getLogger(__name__)
 
