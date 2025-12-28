@@ -181,7 +181,7 @@ jobs:
           from pathlib import Path
           Path('drift').mkdir(exist_ok=True)
           sentiments = np.array([[0.2, 0.6, 0.2], [0.3, 0.5, 0.2]])
-          embeddings = np.random.randn(2, 10)
+          embeddings = np.random.randn(2, 768)
           save_baseline(sentiments, embeddings)
           print('Baseline creation test passed')
           "
@@ -192,7 +192,7 @@ jobs:
           from data_drift_detection.detector import load_baseline, detect_label_drift, detect_embedding_drift
           baseline = load_baseline()
           current_dist = np.array([0.3, 0.5, 0.2])
-          current_embeddings = np.random.randn(5, 10)
+          current_embeddings = np.random.randn(5, 768)
           label_drift = detect_label_drift(current_dist, baseline['sentiment_dist'])
           embed_drift = detect_embedding_drift(current_embeddings, np.array(baseline['embedding_mean']))
           print(f'Label drift: {label_drift}, Embedding drift: {embed_drift}')
