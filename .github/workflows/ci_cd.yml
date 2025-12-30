@@ -481,7 +481,7 @@ jobs:
           token = os.environ.get("HF_TOKEN")
           if not token:
               raise RuntimeError("HF_TOKEN is not set")
-          HfFolder.save_token(token)
+          login(token=token)
           print("Logged in to Hugging Face successfully")
           EOF
 
