@@ -498,7 +498,27 @@ jobs:
       - name: Create HF Space if missing
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_NAME: ${{ steps.space-info.outputs.space_name }}
+          SPACE_NAME: crislap-mlops-monitoring-a-company-s-online-reputation
+        run: |
+          python - <<'EOF'
+          from huggingface_hub import HfApi
+          import os
+        
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          space = os.environ["SPACE_NAME"]
+          api.create_repo(
+              repo_id=space,
+              repo_type="space",   
+              private=False,
+              exist_ok=True,       
+          )
+          print("Space ready:", space)
+          EOF
+          
+      - name: Upload files to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          SPACE_NAME: crislap-mlops-monitoring-a-company-s-online-reputation
         run: |
           python - <<'EOF'
           from huggingface_hub import HfApi
@@ -507,34 +527,9 @@ jobs:
           api = HfApi(token=os.environ["HF_TOKEN"])
           space = os.environ["SPACE_NAME"]
         
-          try:
-              api.create_repo(
-                  repo_id=space,
-                  repo_type="space",
-                  space_sdk="docker",
-                  private=False,
-                  exist_ok=True,
-              )
-              print("Space ready:", space)
-          except Exception as e:
-              print("Space may already exist:", e)
-          EOF
-          
-      - name: Upload files to HF Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_NAME: ${{ steps.space-info.outputs.space_name }}
-        run: |
-          python - <<'EOF'
-          from huggingface_hub import HfApi
-          import os
-        
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          repo_id = os.environ["SPACE_NAME"]
-        
           api.upload_folder(
               folder_path="app",
-              repo_id=repo_id,
+              repo_id=space,
               repo_type="space",
               path_in_repo="app",
           )
@@ -542,14 +537,14 @@ jobs:
           api.upload_file(
               path_or_fileobj="docker/Dockerfile.api",
               path_in_repo="docker/Dockerfile.api",
-              repo_id=repo_id,
+              repo_id=space,
               repo_type="space",
           )
         
           api.upload_file(
               path_or_fileobj=".huggingface.yaml",
               path_in_repo=".huggingface.yaml",
-              repo_id=repo_id,
+              repo_id=space,
               repo_type="space",
           )
         
@@ -560,7 +555,7 @@ jobs:
       - name: Create and upload README.md to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_NAME: ${{ steps.space-info.outputs.space_name }}
+          SPACE_NAME: crislap-mlops-monitoring-a-company-s-online-reputation
         run: |
           # Create README.md locally
           cat > README.md << 'EOF'
@@ -598,12 +593,12 @@ jobs:
               raise RuntimeError("HF_TOKEN is not set")
         
           api = HfApi(token=token)
-          repo_id = os.environ["SPACE_NAME"]
+          space = os.environ["SPACE_NAME"]
         
           api.upload_file(
               path_or_fileobj="README.md",
               path_in_repo="README.md",
-              repo_id=repo_id,
+              repo_id=space,
               repo_type="space",
           )
         
