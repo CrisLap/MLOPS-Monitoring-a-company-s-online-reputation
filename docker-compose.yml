@@ -29,7 +29,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: docker/Dockerfile.api
+      dockerfile: Dockerfile
     container_name: sentiment-api
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
@@ -53,7 +53,7 @@ services:
   training:
     build:
       context: .
-      dockerfile: docker/Dockerfile.training
+      dockerfile: Dockerfile.training
     container_name: sentiment-training
     environment:
       - MLFLOW_TRACKING_URI=http://mlflow:5000
