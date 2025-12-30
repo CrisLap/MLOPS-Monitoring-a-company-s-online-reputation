@@ -538,8 +538,8 @@ jobs:
           )
         
           api.upload_file(
-              path_or_fileobj="docker/Dockerfile.api",
-              path_in_repo="docker/Dockerfile.api",
+              path_or_fileobj="Dockerfile",
+              path_in_repo="Dockerfile",
               repo_id=space,
               repo_type="space",
           )
