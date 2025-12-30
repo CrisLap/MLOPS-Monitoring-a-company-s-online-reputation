@@ -601,7 +601,7 @@ jobs:
               repo_type="space",
           )
       
-          print("README.md uploaded successfully to", repo_id)
+          print("README.md uploaded successfully to", space)
           EOF
         
 
