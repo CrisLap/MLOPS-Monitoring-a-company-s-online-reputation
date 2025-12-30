@@ -390,7 +390,7 @@ jobs:
           if ! docker image inspect $IMAGE_TAG >/dev/null 2>&1; then
             IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:latest
           fi
-          docker run --rm $IMAGE_TAG python -c "import training.train; print('Training module imports successfully')""
+          docker run --rm $IMAGE_TAG python -c "import training.train; print('Training module imports successfully')"
 
   build-api-image:
     name: Build API Docker Image
