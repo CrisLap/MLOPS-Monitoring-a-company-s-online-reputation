@@ -8,6 +8,8 @@ on:
   pull_request:
     branches: [main, master]
   workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'   # every day at 2 AM UTC
 
 env:
   PYTHON_VERSION: "3.10"
@@ -17,6 +19,7 @@ env:
 
 jobs:
   lint-and-validate:
+    if: github.event_name != 'schedule'
     name: Code Quality & Linting
     runs-on: ubuntu-latest
     steps:
@@ -52,6 +55,7 @@ jobs:
           python -c "import yaml; yaml.safe_load(open('.huggingface.yaml'))"
 
   unit-tests:
+    if: github.event_name != 'schedule'
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
@@ -98,6 +102,7 @@ jobs:
           path: htmlcov/
 
   integration-tests:
+    if: github.event_name != 'schedule'
     name: Integration Tests
     runs-on: ubuntu-latest
     services:
@@ -214,6 +219,7 @@ jobs:
           "
 
   validate-airflow-dag:
+    if: github.event_name != 'schedule'
     name: Validate Airflow DAG
     runs-on: ubuntu-latest
     steps:
@@ -266,6 +272,7 @@ jobs:
           "
 
   validate-monitoring:
+    if: github.event_name != 'schedule'
     name: Validate Monitoring Configs
     runs-on: ubuntu-latest
     steps:
@@ -337,6 +344,7 @@ jobs:
           "
 
   build-training-image:
+    if: github.event_name != 'schedule'
     name: Build Training Docker Image
     runs-on: ubuntu-latest
     outputs:
@@ -393,6 +401,7 @@ jobs:
           docker run --rm $IMAGE_TAG python -c "import training.train; print('Training module imports successfully')"
 
   build-api-image:
+    if: github.event_name != 'schedule'
     name: Build API Docker Image
     runs-on: ubuntu-latest
     outputs:
@@ -468,7 +477,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          huggingface-cli login --token "$HF_TOKEN"
+          python -m huggingface_hub.cli login --token "$HF_TOKEN"
 
       - name: Build API image for HF Space
         run: |
@@ -490,11 +499,11 @@ jobs:
           pip install huggingface_hub[cli]
           
           # Create Space if it doesn't exist
-          huggingface-cli repo create $SPACE_NAME --type space --repo-type public || echo "Space may already exist"
+          python -m huggingface_hub.cli repo create $SPACE_NAME --type space --repo-type public || echo "Space may already exist"
           
           # Push necessary files to HF Space
           # Note: .huggingface.yaml references docker/Dockerfile.api, so we push the docker/ directory structure
-          huggingface-cli upload $SPACE_NAME \
+          python -m huggingface_hub.cli upload $SPACE_NAME \
             docker/Dockerfile.api \
             .huggingface.yaml \
             app/ \
