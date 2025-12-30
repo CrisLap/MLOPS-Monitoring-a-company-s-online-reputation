@@ -508,7 +508,8 @@ jobs:
           space = os.environ["SPACE_NAME"]
           api.create_repo(
               repo_id=space,
-              repo_type="space",   
+              repo_type="space",
+              space_sdk="docker",   
               private=False,
               exist_ok=True,       
           )
