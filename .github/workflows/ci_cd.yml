@@ -548,15 +548,12 @@ jobs:
               repo_id=space,
               repo_type="space",
               path_in_repo="app",
-              space_sdk="docker",
-              private=False,
-              exist_ok=True,
           )
         
           api.upload_file(
               path_or_fileobj="docker/Dockerfile.api",
               path_in_repo="docker/Dockerfile.api",
-              repo_id=repo_id,
+              repo_id=space,
               repo_type="space",
           )
         
