@@ -94,6 +94,23 @@ async def readiness_check() -> Dict[str, Any]:
     }
 
 
+@app.get("/")
+async def root_status() -> Dict[str, Any]:
+    """
+    Root endpoint that returns model/training status.
+    """
+    try:
+        model_loaded = getattr(inference, "_model_loaded", False)
+    except Exception:
+        model_loaded = False
+
+    if model_loaded:
+        return {"message": "App ready. The model is ready for predictions."}
+    else:
+        return {"message": "Model in training. Please try again later."}
+
+
+
 @app.post("/predict", response_model=SentimentResponse)
 def predict(req: SentimentRequest):
     """
