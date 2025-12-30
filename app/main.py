@@ -110,7 +110,6 @@ async def root_status() -> Dict[str, Any]:
         return {"message": "Model in training. Please try again later."}
 
 
-
 @app.post("/predict", response_model=SentimentResponse)
 def predict(req: SentimentRequest):
     """
