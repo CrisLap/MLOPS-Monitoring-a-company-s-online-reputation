@@ -476,8 +476,7 @@ jobs:
           pip install --upgrade huggingface_hub
           python - <<'EOF'
           import os
-          from huggingface_hub import HfFolder
-      
+          from huggingface_hub import login
           token = os.environ.get("HF_TOKEN")
           if not token:
               raise RuntimeError("HF_TOKEN is not set")
