@@ -472,6 +472,7 @@ jobs:
       - name: Log in to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: CrisLap
         run: |
           pip install --upgrade huggingface_hub
           python - <<'EOF'
@@ -489,23 +490,23 @@ jobs:
           docker build -f docker/Dockerfile.api -t hf-space-api:latest .
 
       - name: Get Space name from repository
-        id: space-info
+        id: hf-space
         run: |
-          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
-          echo "space_name=$REPO_NAME" >> $GITHUB_OUTPUT
-          echo "Space name: $REPO_NAME"
+          SPACE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
+          echo "space_id=${{ env.HF_USERNAME }}/$SPACE_NAME" >> $GITHUB_OUTPUT
+          echo "HF Space ID: ${{ env.HF_USERNAME }}/$SPACE_NAME"
           
       - name: Create HF Space if missing
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_NAME: crislap-mlops-monitoring-a-company-s-online-reputation
+          SPACE_ID: ${{ steps.hf-space.outputs.space_id }}
         run: |
           python - <<'EOF'
           from huggingface_hub import HfApi
           import os
         
           api = HfApi(token=os.environ["HF_TOKEN"])
-          space = os.environ["SPACE_NAME"]
+          space = os.environ["SPACE_ID"]
           api.create_repo(
               repo_id=space,
               repo_type="space",
@@ -519,14 +520,14 @@ jobs:
       - name: Upload files to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_NAME: crislap-mlops-monitoring-a-company-s-online-reputation
+          SPACE_ID: ${{ steps.hf-space.outputs.space_id }}
         run: |
           python - <<'EOF'
           from huggingface_hub import HfApi
           import os
         
           api = HfApi(token=os.environ["HF_TOKEN"])
-          space = os.environ["SPACE_NAME"]
+          space = os.environ["SPACE_ID"]
         
           api.upload_folder(
               folder_path="app",
