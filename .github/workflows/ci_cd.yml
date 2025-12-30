@@ -477,7 +477,15 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          python -m huggingface_hub.cli login --token "$HF_TOKEN"
+          python - <<'EOF'
+          import os
+          from huggingface_hub import login
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              raise RuntimeError("HF_TOKEN is not set")
+          login(token=token)
+          print("Logged in to Hugging Face successfully")
+          EOF
 
       - name: Build API image for HF Space
         run: |
@@ -498,19 +506,74 @@ jobs:
           # Install HF CLI
           pip install huggingface_hub[cli]
           
-          # Create Space if it doesn't exist
-          python -m huggingface_hub.cli repo create $SPACE_NAME --type space --repo-type public || echo "Space may already exist"
+      - name: Create HF Space if missing
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          SPACE_NAME: ${{ steps.space-info.outputs.space_name }}
+        run: |
+          python - <<'EOF'
+          from huggingface_hub import HfApi
+          import os
+        
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          space = os.environ["SPACE_NAME"]
+        
+          try:
+              api.create_repo(
+                  repo_id=space,
+                  repo_type="space",
+                  space_sdk="docker",
+                  private=False,
+                  exist_ok=True,
+              )
+              print("Space ready:", space)
+          except Exception as e:
+              print("Space may already exist:", e)
+          EOF
           
-          # Push necessary files to HF Space
-          # Note: .huggingface.yaml references docker/Dockerfile.api, so we push the docker/ directory structure
-          python -m huggingface_hub.cli upload $SPACE_NAME \
-            docker/Dockerfile.api \
-            .huggingface.yaml \
-            app/ \
-            requirements.txt \
-            --repo-type space
+      - name: Upload files to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          SPACE_NAME: ${{ steps.space-info.outputs.space_name }}
+        run: |
+          python - <<'EOF'
+          from huggingface_hub import HfApi
+          import os
+        
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          repo_id = os.environ["SPACE_NAME"]
+        
+          api.upload_folder(
+              folder_path="app",
+              repo_id=repo_id,
+              repo_type="space",
+              path_in_repo="app",
+          )
+        
+          api.upload_file(
+              path_or_fileobj="docker/Dockerfile.api",
+              path_in_repo="docker/Dockerfile.api",
+              repo_id=repo_id,
+              repo_type="space",
+          )
+        
+          api.upload_file(
+              path_or_fileobj=".huggingface.yaml",
+              path_in_repo=".huggingface.yaml",
+              repo_id=repo_id,
+              repo_type="space",
+          )
+        
+          print("Files uploaded successfully")
+          EOF
           
-          # Create README.md for the Space
+      
+      - name: Create and upload README.md to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          SPACE_NAME: ${{ steps.space-info.outputs.space_name }}
+        run: |
+          # Create README.md locally
           cat > README.md << 'EOF'
           ---
           title: Sentiment Analysis API
@@ -521,23 +584,43 @@ jobs:
           dockerfile: docker/Dockerfile.api
           app_port: 8000
           ---
-          
+        
           # Sentiment Analysis API
-          
+        
           FastAPI-based sentiment analysis service for monitoring online reputation.
-          
+        
           ## Usage
-          
+        
           Send a POST request to `/predict` with JSON body:
           ```json
           {"text": "I love this product"}
           ```
-          
+        
           Visit `/docs` for interactive API documentation.
           EOF
-          huggingface-cli upload $SPACE_NAME README.md README.md --repo-type space
-          
-          echo "Deployment to HF Space completed. Space will build automatically."
+        
+          # Upload README.md using Hugging Face Python API
+          python - <<'EOF'
+          from huggingface_hub import HfApi
+          import os
+        
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              raise RuntimeError("HF_TOKEN is not set")
+        
+          api = HfApi(token=token)
+          repo_id = os.environ["SPACE_NAME"]
+        
+          api.upload_file(
+              path_or_fileobj="README.md",
+              path_in_repo="README.md",
+              repo_id=repo_id,
+              repo_type="space",
+          )
+        
+          print("README.md uploaded successfully")
+          EOF
+        
 
   push-docker-images:
     name: Push Docker Images to GHCR
