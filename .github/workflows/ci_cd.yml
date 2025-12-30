@@ -473,14 +473,14 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          pip install --upgrade huggingface_hub
           python - <<'EOF'
           import os
-          pip install huggingface_hub
-            token = os.environ.get("HF_TOKEN")
-            if not token:
-                raise RuntimeError("HF_TOKEN is not set")
-            login(token=token)
-            print("Logged in to Hugging Face successfully")
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              raise RuntimeError("HF_TOKEN is not set")
+          login(token=token)
+          print("Logged in to Hugging Face successfully")
           EOF
 
       - name: Build API image for HF Space
