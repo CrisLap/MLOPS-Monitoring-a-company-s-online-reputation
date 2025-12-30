@@ -558,7 +558,7 @@ jobs:
       - name: Create and upload README.md to HF Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_NAME: crislap-mlops-monitoring-a-company-s-online-reputation
+          SPACE_ID: ${{ steps.hf-space.outputs.space_id }}
         run: |
           # Create README.md locally
           cat > README.md << 'EOF'
@@ -590,22 +590,18 @@ jobs:
           python - <<'EOF'
           from huggingface_hub import HfApi
           import os
-        
-          token = os.environ.get("HF_TOKEN")
-          if not token:
-              raise RuntimeError("HF_TOKEN is not set")
-        
-          api = HfApi(token=token)
-          space = os.environ["SPACE_NAME"]
-        
+      
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          space = os.environ["SPACE_ID"]
+      
           api.upload_file(
               path_or_fileobj="README.md",
               path_in_repo="README.md",
               repo_id=space,
               repo_type="space",
           )
-        
-          print("README.md uploaded successfully")
+      
+          print("README.md uploaded successfully to", repo_id)
           EOF
         
 
