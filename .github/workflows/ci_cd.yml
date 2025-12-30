@@ -493,8 +493,9 @@ jobs:
         id: hf-space
         run: |
           SPACE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
-          echo "space_id=${{ env.HF_USERNAME }}/$SPACE_NAME" >> $GITHUB_OUTPUT
-          echo "HF Space ID: ${{ env.HF_USERNAME }}/$SPACE_NAME"
+          SPACE_ID="CrisLap/$SPACE_NAME"
+          echo "space_id=$SPACE_ID" >> $GITHUB_OUTPUT
+          echo "HF Space ID: $SPACE_ID"
           
       - name: Create HF Space if missing
         env:
