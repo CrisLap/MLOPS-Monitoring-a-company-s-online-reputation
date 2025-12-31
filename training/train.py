@@ -18,6 +18,19 @@ LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 MODEL_OUT = Path("models") / "sentiment_ft.bin"
 
 
+def setup_mlflow():
+    uri = os.getenv("MLFLOW_TRACKING_URI", "")
+    try:
+        mlflow.set_tracking_uri(uri)
+        mlflow.start_run(run_name="healthcheck")
+        mlflow.end_run()
+    except Exception as e:
+        print(f"MLflow unavailable, falling back to local mode: {e}")
+        mlflow.set_tracking_uri("file:///tmp/mlruns")
+
+setup_mlflow()
+
+
 def _to_fasttext_format(dataset_split, path):
     """
     Converts a dataset split to FastText training format and writes to a file.
