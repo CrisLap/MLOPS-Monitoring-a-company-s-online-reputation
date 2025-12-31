@@ -12,6 +12,7 @@ ARG BASE_IMAGE=python:3.10-slim
 FROM ${BASE_IMAGE}
 
 ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
 WORKDIR /app
 # Install system dependencies (REQUIRED for fasttext)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,7 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for better layer caching
 COPY requirements.txt .
 RUN pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
+ && pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt
+
 
 # Copy only necessary code (exclude tests and monitoring from production image)
 COPY training/ training/
