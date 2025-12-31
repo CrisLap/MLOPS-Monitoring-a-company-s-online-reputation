@@ -14,7 +14,7 @@ on:
         default: '0.1'
         type: string
   schedule:
-    - cron: '0 2 * * 3'  # Weekly on Wednesdays at 2 AM UTC
+    - cron: '0 2 * * 4'  # Weekly on Thursdays at 2 AM UTC
 
 env:
   PYTHON_VERSION: "3.10"
@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p /tmp/mlflow
           mlflow server --host 0.0.0.0 --port 5000 \
-            --backend-store-uri sqlite:///tmp/mlflow.db \
+            --backend-store-uri sqlite:////tmp/mlflow/mlflow.db \
             --default-artifact-root /tmp/mlflow/artifacts &
           sleep 15
 
