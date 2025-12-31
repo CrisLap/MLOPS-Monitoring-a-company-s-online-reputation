@@ -125,21 +125,6 @@ jobs:
           rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
-      # Optional: GPU variant
-      - name: Build and push training image (GPU)
-        if: github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.training
-          push: true
-          build-args: BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:gpu-latest
-            ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:gpu-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Cleanup MLflow temporary files
         run: |
           rm -rf /tmp/mlflow
