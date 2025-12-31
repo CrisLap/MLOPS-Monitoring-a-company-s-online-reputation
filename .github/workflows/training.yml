@@ -57,6 +57,10 @@ jobs:
         run: |
           timeout 120 bash -c 'until curl -f http://localhost:5000 || curl -f http://localhost:5000/health; do sleep 2; done'
 
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
       - name: Run training
         env:
@@ -88,7 +92,12 @@ jobs:
         with:
           name: trained-model
           path: models/sentiment_ft.bin
-          retention-days: 30
+          retention-days: 10
+
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
       - name: Log in to GHCR
         uses: docker/login-action@v2
@@ -116,6 +125,11 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
       # Optional: GPU variant
       - name: Build and push training image (GPU)

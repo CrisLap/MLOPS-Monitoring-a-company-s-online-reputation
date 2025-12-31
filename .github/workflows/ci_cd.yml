@@ -101,6 +101,11 @@ jobs:
           name: coverage-report
           path: htmlcov/
 
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
+
   integration-tests:
     if: github.event_name != 'schedule'
     name: Integration Tests
@@ -217,6 +222,10 @@ jobs:
           print(f'Drift check result: {result}')
           print('Run drift check test passed')
           "
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
   validate-airflow-dag:
     if: github.event_name != 'schedule'
@@ -270,6 +279,10 @@ jobs:
           print('All expected tasks found')
           print('DAG validation passed')
           "
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
   validate-monitoring:
     if: github.event_name != 'schedule'
@@ -342,6 +355,10 @@ jobs:
           assert len(found_metrics) > 0, 'No expected metrics found in dashboard'
           print('Metric validation passed')
           "
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
   build-training-image:
     if: github.event_name != 'schedule'
@@ -454,6 +471,11 @@ jobs:
           sleep 10
           curl -f http://localhost:8000/docs || echo "API health check"
           docker stop test-api || true
+
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
   deploy-hf-space:
     name: Deploy to Hugging Face Space
@@ -604,6 +626,10 @@ jobs:
           print("README.md uploaded successfully to", space)
           EOF
         
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
 
   push-docker-images:
     name: Push Docker Images to GHCR
@@ -620,3 +646,8 @@ jobs:
           echo "- API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Images are available with tags: latest, ${{ github.sha }}, and version tags (if applicable)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Clean temp folders
+        run: |
+          rm -rf /tmp/*
+          df -h
