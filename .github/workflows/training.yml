@@ -59,7 +59,7 @@ jobs:
 
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
       - name: Run training
@@ -96,7 +96,7 @@ jobs:
 
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
       - name: Log in to GHCR
@@ -128,7 +128,7 @@ jobs:
       
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
       # Optional: GPU variant
@@ -149,4 +149,5 @@ jobs:
       - name: Cleanup MLflow temporary files
         run: |
           rm -rf /tmp/mlflow
+
 

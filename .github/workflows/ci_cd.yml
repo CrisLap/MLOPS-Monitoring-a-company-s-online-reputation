@@ -103,7 +103,7 @@ jobs:
 
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
   integration-tests:
@@ -224,7 +224,7 @@ jobs:
           "
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
   validate-airflow-dag:
@@ -281,7 +281,7 @@ jobs:
           "
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
   validate-monitoring:
@@ -357,7 +357,7 @@ jobs:
           "
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
   build-training-image:
@@ -474,7 +474,7 @@ jobs:
 
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
   deploy-hf-space:
@@ -628,7 +628,7 @@ jobs:
         
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
 
   push-docker-images:
@@ -649,5 +649,5 @@ jobs:
 
       - name: Clean temp folders
         run: |
-          rm -rf /tmp/*
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
           df -h
