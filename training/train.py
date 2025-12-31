@@ -28,6 +28,7 @@ def setup_mlflow():
         print(f"MLflow unavailable, falling back to local mode: {e}")
         mlflow.set_tracking_uri("file:///tmp/mlruns")
 
+
 setup_mlflow()
 
 
