@@ -111,7 +111,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile.training
+          file: Dockerfile.training
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:latest
@@ -125,7 +125,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile.training
+          file: Dockerfile.training
           push: true
           build-args: BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04
           tags: |
