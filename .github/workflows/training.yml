@@ -99,6 +99,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
       
+      - name: Set lowercase repo owner
+        run: |
+          echo "REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -110,8 +114,8 @@ jobs:
           file: ./docker/Dockerfile.training
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_TRAINING }}:latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:latest
+            ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -125,8 +129,8 @@ jobs:
           push: true
           build-args: BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_TRAINING }}:gpu-latest
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_TRAINING }}:gpu-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:gpu-latest
+            ${{ env.REGISTRY }}/${{ env.REPO_OWNER_LOWER }}/${{ env.IMAGE_NAME_TRAINING }}:gpu-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
