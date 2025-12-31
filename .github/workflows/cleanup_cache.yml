@@ -1,0 +1,59 @@
+name: Cleanup GitHub runner and caches
+
+# Trigger sia per PR chiusi che per branch principali
+on:
+  pull_request:
+    types:
+      - closed
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'  # ogni giorno alle 3 AM UTC
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write  # necessario per gh cache delete
+    steps:
+      - name: Install GitHub CLI if missing
+        run: |
+          if ! command -v gh &> /dev/null; then
+              echo "Installing GitHub CLI..."
+              sudo apt update && sudo apt install gh -y
+          fi
+
+      - name: Clean GitHub Actions cache
+        run: |
+          echo "Fetching list of cache keys for this ref"
+          # Branch PR o branch principale
+          REF=${{ github.event.pull_request.head.ref || github.ref_name }}
+          echo "Using ref: $REF"
+          cacheKeys=$(gh cache list --ref $REF --limit 100 --json id --jq '.[].id')
+
+          set +e
+          for cacheKey in $cacheKeys; do
+              echo "Deleting cache $cacheKey"
+              gh cache delete $cacheKey --confirm
+          done
+          echo "GitHub Actions cache cleanup done"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Clean temp folders and Docker
+        run: |
+          echo "Cleaning /tmp folders..."
+          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
+          df -h
+
+          echo "Pruning Docker system..."
+          docker system prune -af || true
+          docker volume prune -f || true
+          df -h
+
+      - name: Summary
+        run: |
+          echo "Runner cleanup finished"
