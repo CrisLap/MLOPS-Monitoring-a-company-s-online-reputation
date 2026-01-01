@@ -47,8 +47,10 @@ jobs:
             -e EPOCH=${{ github.event.inputs.epoch || '5' }} \
             -e LR=${{ github.event.inputs.lr || '0.001' }} \
             -v $PWD/artifacts:/artifacts \
+            -w /app \
+            -e PYTHONPATH=/app \
             ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.PROJECT }}/${{ env.IMAGE_TRAINING }}:latest \
-            python -m training/train --output /artifacts
+            python -m training.train --output /artifacts
 
       - name: Validate model
         run: |
