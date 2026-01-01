@@ -1,8 +1,10 @@
 import os
+import shutil
 import tempfile
 import logging
+import json
 import numpy as np
-import shutil
+import sqlalchemy as sa
 
 try:
     from mlflow.tracking import MlflowClient
@@ -29,7 +31,6 @@ def load_from_mlflow():
     temp_dir = None
 
     try:
-        # Attempt to get recent runs sorted by start_time descending
         try:
             runs = client.search_runs(
                 experiment_ids=None,
@@ -56,14 +57,36 @@ def load_from_mlflow():
                     fp = client.download_artifacts(run_id, a.path, temp_dir)
                     result = _load_npz_file(fp)
 
-                    # Clean up temp directory safely
+                    # Cleanup temp dir safely
                     if temp_dir and os.path.exists(temp_dir):
                         shutil.rmtree(temp_dir, ignore_errors=True)
 
                     return result
     finally:
-        # Fallback cleanup just in case
+        # Fallback cleanup
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
 
     return None
+
+
+def load_from_db(uri="postgresql://test_user:test_pass@localhost:5432/test_db"):
+    """
+    Load the most recent sentiment_dist and embeddings from a database table.
+    Returns (sentiment_dist, embeddings) as numpy arrays or None if not found.
+    Compatible with SQLite and Postgres.
+    """
+    engine = sa.create_engine(uri)
+    with engine.begin() as conn:
+        result = conn.execute(
+            sa.text("SELECT type, value FROM drift_data ORDER BY created_at DESC")
+        ).fetchall()
+
+    data_dict = {}
+    for t, v in result:
+        data_dict[t] = np.array(json.loads(v))
+
+    if "sentiment_dist" in data_dict and "embeddings" in data_dict:
+        return data_dict["sentiment_dist"], data_dict["embeddings"]
+    else:
+        return None
