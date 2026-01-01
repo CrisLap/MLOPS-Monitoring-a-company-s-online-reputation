@@ -10,7 +10,7 @@ except ImportError:
     fasttext = None
 
 # Usa import assoluto per evitare problemi con il -m
-from training.data_loader import load_data  
+from training.data_loader import load_data
 
 logger = logging.getLogger(__name__)
 
@@ -108,15 +108,11 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.1)
     parser.add_argument("--wordNgrams", type=int, default=2)
     parser.add_argument("--dim", type=int, default=100)
-    parser.add_argument(
-        "--output", type=str, default=os.getenv("OUTPUT_DIR", "models")
-    )
+    parser.add_argument("--output", type=str, default=os.getenv("OUTPUT_DIR", "models"))
     args = parser.parse_args()
 
     # Imposta OUTPUT_DIR dinamicamente da CLI
     OUTPUT_DIR = Path(args.output)
     MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
 
-    train(
-        epoch=args.epoch, lr=args.lr, wordNgrams=args.wordNgrams, dim=args.dim
-    )
+    train(epoch=args.epoch, lr=args.lr, wordNgrams=args.wordNgrams, dim=args.dim)
