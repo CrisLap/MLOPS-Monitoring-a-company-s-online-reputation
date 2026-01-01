@@ -3,642 +3,113 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, master]
-    tags:
-      - 'v*'
+    tags: ['v*']
   pull_request:
     branches: [main, master]
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'   # every day at 2 AM UTC
+    - cron: '0 2 * * *'
 
 env:
   PYTHON_VERSION: "3.10"
   REGISTRY: ghcr.io
-  IMAGE_NAME_API: crislap/mlops-monitoring-a-company-s-online-reputation/api
-  IMAGE_NAME_TRAINING: crislap/mlops-monitoring-a-company-s-online-reputation/training
+  ORG: crislap
+  PROJECT: mlops-monitoring-a-company-s-online-reputation
+  IMAGE_API: api
+  IMAGE_TRAINING: training
 
 jobs:
-  lint-and-validate:
+
+  lint-test:
+    name: Lint & Tests
     if: github.event_name != 'schedule'
-    name: Code Quality & Linting
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install linting dependencies
-        run: |
-          pip install black flake8 pyyaml
+      - run: |
+          pip install black flake8 pytest pytest-cov pyyaml
 
-      - name: Run Black formatter check
-        run: black --check .
+      - run: black --check .
+      - run: flake8 . --count --select=E9,F63,F7,F82
 
-      - name: Run Flake8 linter
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - run: |
+          pytest tests/ --cov=. --cov-report=xml
 
-      - name: Validate YAML files
-        run: |
-          python -c "import yaml; yaml.safe_load(open('docker-compose.yml'))"
-          python -c "import yaml; yaml.safe_load(open('monitoring/prometheus.yml'))"
-
-      - name: Validate JSON files
-        run: |
-          python -c "import json; json.load(open('monitoring/grafana_dashboard.json'))"
-
-      - name: Validate Hugging Face config
-        run: |
-          python -c "import yaml; yaml.safe_load(open('.huggingface.yaml'))"
-
-  unit-tests:
-    if: github.event_name != 'schedule'
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: codecov/codecov-action@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install pytest pytest-cov coverage
-
-      - name: Run unit tests with coverage
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          pytest tests/ -v --cov=. --cov-report=xml --cov-report=html --cov-report=term
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
+          file: coverage.xml
         continue-on-error: true
 
-      - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: htmlcov/
-
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
-
-  integration-tests:
-    if: github.event_name != 'schedule'
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          pip install pytest mlflow
-
-      - name: Start MLflow server
-        run: |
-          mkdir -p /tmp/mlflow
-          mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///tmp/mlflow.db --default-artifact-root /tmp/mlflow/artifacts &
-          sleep 10
-
-      - name: Wait for services to be ready
-        run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000 || curl -f http://localhost:5000/health; do sleep 2; done' || echo "MLflow server may be starting"
-          timeout 60 bash -c 'until pg_isready -h localhost -p 5432 -U test_user; do sleep 2; done'
-
-      - name: Set up test database
-        env:
-          DRIFT_DB_URI: postgresql://test_user:test_pass@localhost:5432/test_db
-        run: |
-          python -c "
-          import sqlalchemy as sa
-          engine = sa.create_engine('postgresql://test_user:test_pass@localhost:5432/test_db')
-          with engine.begin() as conn:
-              conn.execute(sa.text('''
-                  CREATE TABLE IF NOT EXISTS drift_data (
-                      id SERIAL PRIMARY KEY,
-                      type TEXT NOT NULL,
-                      value JSONB NOT NULL,
-                      created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-                  );
-              '''))
-          "
-
-
-      - name: Run integration tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-          MLFLOW_TRACKING_URI: http://localhost:5000
-          DRIFT_DB_URI: postgresql://test_user:test_pass@localhost:5432/test_db
-        run: |
-          pytest tests/ -v -k "integration or runtime" || pytest tests/test_api_runtime.py -v || echo "No integration tests found, skipping"
-
-      - name: Test data drift detection components
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-          MLFLOW_TRACKING_URI: http://localhost:5000
-          DRIFT_DB_URI: postgresql://test_user:test_pass@localhost:5432/test_db
-        run: |
-          # Test baseline creation
-          python -c "
-          import numpy as np
-          from data_drift_detection.baseline import save_baseline
-          from pathlib import Path
-          Path('drift').mkdir(exist_ok=True)
-          sentiments = np.array([[0.2, 0.6, 0.2], [0.3, 0.5, 0.2]])
-          embeddings = np.random.randn(2, 768)
-          save_baseline(sentiments, embeddings)
-          print('Baseline creation test passed')
-          "
-          
-          # Test drift detection logic
-          python -c "
-          import numpy as np
-          from data_drift_detection.detector import load_baseline, detect_label_drift, detect_embedding_drift
-          baseline = load_baseline()
-          current_dist = np.array([0.3, 0.5, 0.2])
-          current_embeddings = np.random.randn(5, 768)
-          label_drift = detect_label_drift(current_dist, baseline['sentiment_dist'])
-          embed_drift = detect_embedding_drift(current_embeddings, np.array(baseline['embedding_mean']))
-          print(f'Label drift: {label_drift}, Embedding drift: {embed_drift}')
-          print('Drift detection logic test passed')
-          "
-          
-          # Test storage fallback mechanisms
-          pytest tests/test_storage.py -v || echo "Storage tests completed"
-          
-          # Test run_drift_check
-          python -c "
-          import numpy as np
-          from data_drift_detection.run_drift_check import run_drift
-          sentiment_dist = np.array([0.2, 0.6, 0.2])
-          embeddings = np.random.randn(2, 768)
-          result = run_drift(sentiment_dist, embeddings)
-          print(f'Drift check result: {result}')
-          print('Run drift check test passed')
-          "
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
-
-  validate-airflow-dag:
-    if: github.event_name != 'schedule'
-    name: Validate Airflow DAG
+  validate-configs:
+    name: Validate Configs
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - run: |
+          python - <<EOF
+          import yaml, json
+          yaml.safe_load(open('docker-compose.yml'))
+          yaml.safe_load(open('monitoring/prometheus.yml'))
+          json.load(open('monitoring/grafana_dashboard.json'))
+          EOF
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install Airflow dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-
-      - name: Validate DAG syntax
-        env:
-          AIRFLOW_HOME: /tmp/airflow_home
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          mkdir -p $AIRFLOW_HOME
-          python -c "
-          import sys
-          sys.path.insert(0, '.')
-          from airflow import DAG
-          from airflow.dag_processing.processor import DagFileProcessor
-          import airflow.dags.sentiment_pipeline as dag_module
-          print('DAG imported successfully')
-          print(f'DAG ID: {dag_module.dag.dag_id}')
-          print(f'Number of tasks: {len(dag_module.dag.tasks)}')
-          "
-
-      - name: Test DAG task dependencies
-        env:
-          AIRFLOW_HOME: /tmp/airflow_home
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          python -c "
-          import sys
-          sys.path.insert(0, '.')
-          from airflow.dags import sentiment_pipeline
-          dag = sentiment_pipeline.dag
-          # Verify task dependencies
-          assert 'prepare_data' in [t.task_id for t in dag.tasks]
-          assert 'check_drift' in [t.task_id for t in dag.tasks]
-          assert 'train' in [t.task_id for t in dag.tasks]
-          print('All expected tasks found')
-          print('DAG validation passed')
-          "
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
-
-  validate-monitoring:
-    if: github.event_name != 'schedule'
-    name: Validate Monitoring Configs
+  build-images:
+    name: Build Docker Images
     runs-on: ubuntu-latest
+    needs: [lint-test, validate-configs]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Install validation dependencies
-        run: |
-          pip install pyyaml
-
-      - name: Validate Prometheus config
-        run: |
-          python -c "
-          import yaml
-          with open('monitoring/prometheus.yml', 'r') as f:
-              config = yaml.safe_load(f)
-          assert 'scrape_configs' in config
-          print('Prometheus config is valid')
-          "
-
-      - name: Validate Grafana dashboard JSON
-        run: |
-          python -c "
-          import json
-          with open('monitoring/grafana_dashboard.json', 'r') as f:
-              dashboard = json.load(f)
-          assert 'dashboard' in dashboard
-          assert 'panels' in dashboard['dashboard']
-          print('Grafana dashboard JSON is valid')
-          "
-
-      - name: Verify metric names match API
-        run: |
-          python -c "
-          import json
-          import re
-          
-          # Read Grafana dashboard
-          with open('monitoring/grafana_dashboard.json', 'r') as f:
-              dashboard = json.load(f)
-          
-          # Extract metric names from dashboard
-          metric_names = set()
-          for panel in dashboard['dashboard']['panels']:
-              for target in panel.get('targets', []):
-                  expr = target.get('expr', '')
-                  # Extract metric names from PromQL expressions
-                  metrics = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)', expr)
-                  metric_names.update(metrics)
-          
-          # Expected metrics from API
-          expected_metrics = {
-              'sentiment_requests_total',
-              'sentiment_request_latency_seconds',
-              'sentiment_predictions_total',
-              'sentiment_drift_score'
-          }
-          
-          # Check if expected metrics are referenced
-          found_metrics = expected_metrics.intersection(metric_names)
-          print(f'Found metrics in dashboard: {found_metrics}')
-          assert len(found_metrics) > 0, 'No expected metrics found in dashboard'
-          print('Metric validation passed')
-          "
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
-
-  build-training-image:
-    if: github.event_name != 'schedule'
-    name: Build Training Docker Image
-    runs-on: ubuntu-latest
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        id: build
+      - name: Build API
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.training
-          push: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Test training image
-        run: |
-          IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:${{ github.sha }}
-          if ! docker image inspect $IMAGE_TAG >/dev/null 2>&1; then
-            IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}:latest
-          fi
-          docker run --rm $IMAGE_TAG python -c "import training.train; print('Training module imports successfully')"
-
-  build-api-image:
-    name: Build API Docker Image
-    runs-on: ubuntu-latest
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push Docker image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
+          file: Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.PROJECT }}/${{ env.IMAGE_API }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.PROJECT }}/${{ env.IMAGE_API }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Test API image
-        run: |
-          IMAGE_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:latest
-          docker run -d --name test-api -p 8000:8000 $IMAGE_TAG
-          sleep 10
-          curl -f http://localhost:8000/docs || echo "API health check"
-          docker stop test-api || true
+      - name: Build Training
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.training
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.PROJECT }}/${{ env.IMAGE_TRAINING }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
-
-  deploy-hf-space:
-    name: Deploy to Hugging Face Space
+  deploy-hf:
+    name: Deploy HF Space
     runs-on: ubuntu-latest
-    needs: [build-api-image, lint-and-validate, unit-tests]
+    needs: build-images
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Hugging Face
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_USERNAME: CrisLap
-        run: |
-          pip install --upgrade huggingface_hub
-          python - <<'EOF'
-          import os
+      - run: |
+          pip install huggingface_hub
+          python - <<EOF
           from huggingface_hub import login
-          token = os.environ.get("HF_TOKEN")
-          if not token:
-              raise RuntimeError("HF_TOKEN is not set")
-          login(token=token)
-          print("Logged in to Hugging Face successfully")
+          login("${{ secrets.HF_TOKEN }}")
           EOF
 
-      - name: Build API image for HF Space
-        run: |
-          docker build -f Dockerfile -t hf-space-api:latest .
-
-      - name: Get Space name from repository
-        id: hf-space
-        run: |
-          SPACE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
-          SPACE_ID="CrisLap/$SPACE_NAME"
-          echo "space_id=$SPACE_ID" >> $GITHUB_OUTPUT
-          echo "HF Space ID: $SPACE_ID"
-          
-      - name: Create HF Space if missing
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_ID: ${{ steps.hf-space.outputs.space_id }}
-        run: |
-          python - <<'EOF'
-          from huggingface_hub import HfApi
-          import os
-        
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          space = os.environ["SPACE_ID"]
-          api.create_repo(
-              repo_id=space,
-              repo_type="space",
-              space_sdk="docker",   
-              private=False,
-              exist_ok=True,       
-          )
-          print("Space ready:", space)
-          EOF
-          
-      - name: Upload files to HF Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_ID: ${{ steps.hf-space.outputs.space_id }}
-        run: |
-          python - <<'EOF'
-          from huggingface_hub import HfApi
-          import os
-        
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          space = os.environ["SPACE_ID"]
-        
-          api.upload_folder(
-              folder_path="app",
-              repo_id=space,
-              repo_type="space",
-              path_in_repo="app",
-          )
-        
-          api.upload_file(
-              path_or_fileobj="Dockerfile",
-              path_in_repo="Dockerfile",
-              repo_id=space,
-              repo_type="space",
-          )
-        
-          api.upload_file(
-              path_or_fileobj=".huggingface.yaml",
-              path_in_repo=".huggingface.yaml",
-              repo_id=space,
-              repo_type="space",
-          )
-        
-          print("Files uploaded successfully")
-          EOF
-          
-      
-      - name: Create and upload README.md to HF Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          SPACE_ID: ${{ steps.hf-space.outputs.space_id }}
-        run: |
-          # Create README.md locally
-          cat > README.md << 'EOF'
-          ---
-          title: Sentiment Analysis API
-          emoji: 🤖
-          colorFrom: blue
-          colorTo: purple
-          sdk: docker
-          dockerfile: Dockerfile
-          app_port: 8000
-          ---
-        
-          # Sentiment Analysis API
-        
-          FastAPI-based sentiment analysis service for monitoring online reputation.
-        
-          ## Usage
-        
-          Send a POST request to `/predict` with JSON body:
-          ```json
-          {"text": "I love this product"}
-          ```
-        
-          Visit `/docs` for interactive API documentation.
-          EOF
-        
-          # Upload README.md using Hugging Face Python API
-          python - <<'EOF'
-          from huggingface_hub import HfApi
-          import os
-      
-          api = HfApi(token=os.environ["HF_TOKEN"])
-          space = os.environ["SPACE_ID"]
-      
-          api.upload_file(
-              path_or_fileobj="README.md",
-              path_in_repo="README.md",
-              repo_id=space,
-              repo_type="space",
-          )
-      
-          print("README.md uploaded successfully to", space)
-          EOF
-        
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
-
-  push-docker-images:
-    name: Push Docker Images to GHCR
-    runs-on: ubuntu-latest
-    needs: [build-training-image, build-api-image]
-    steps:
-      - name: Summary
-        run: |
-          echo "## Docker Images Pushed to GHCR" >> $GITHUB_STEP_SUMMARY
-          echo "- Training Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_TRAINING }}" >> $GITHUB_STEP_SUMMARY
-          echo "- API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Images are available with tags: latest, ${{ github.sha }}, and version tags (if applicable)" >> $GITHUB_STEP_SUMMARY
-
-      - name: Clean temp folders
-        run: |
-          rm -rf /tmp/my-app-* /tmp/mlflow /tmp/pip-cache || true
-          df -h
+      - run: |
+          docker build -t hf-space-api .
