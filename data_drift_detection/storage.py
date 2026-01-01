@@ -9,10 +9,12 @@ try:
 except ImportError:
     MlflowClient = None
 
+
 def _load_npz_file(path):
     """Load sentiment and embeddings from a .npz file."""
     data = np.load(path)
     return data["sentiment_dist"], data["embeddings"]
+
 
 def load_from_mlflow():
     """
