@@ -60,7 +60,6 @@ def load_from_mlflow():
                     fp = client.download_artifacts(run_id, a.path, temp_dir)
                     result = _load_npz_file(fp)
                     # Clean up temp directory
-                    import shutil
 
                     if temp_dir and os.path.exists(temp_dir):
                         shutil.rmtree(temp_dir, ignore_errors=True)
