@@ -56,24 +56,23 @@ jobs:
         run: |
           test -f artifacts/sentiment_ft.bin
 
-      - name: Save metadata
-        run: |
-          mkdir -p artifacts
-          chmod 777 artifacts
-          EPOCH="${{ github.event.inputs.epoch || '5' }}"
-          LR="${{ github.event.inputs.lr || '0.001' }}"
-          GIT_SHA="${{ github.sha }}"
-          TRAINED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          - name: Save metadata
+          run: |
+            mkdir -p artifacts
         
-          cat > artifacts/metadata.json <<EOF
-          {
-            "git_sha": "$GIT_SHA",
-            "epoch": "$EPOCH",
-            "lr": "$LR",
-            "trained_at": "$TRAINED_AT"
-          }
-          EOF
+            EPOCH="${{ github.event.inputs.epoch || '5' }}"
+            LR="${{ github.event.inputs.lr || '0.001' }}"
+            GIT_SHA="${{ github.sha }}"
+            TRAINED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
         
+            cat > artifacts/metadata.json <<EOF
+            {
+              "git_sha": "$GIT_SHA",
+              "epoch": "$EPOCH",
+              "lr": "$LR",
+              "trained_at": "$TRAINED_AT"
+            }
+            EOF
         
       - uses: actions/upload-artifact@v4
         with:
