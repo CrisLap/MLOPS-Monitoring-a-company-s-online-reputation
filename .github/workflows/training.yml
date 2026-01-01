@@ -48,7 +48,7 @@ jobs:
             -e LR=${{ github.event.inputs.lr || '0.001' }} \
             -v $PWD/artifacts:/artifacts \
             ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.PROJECT }}/${{ env.IMAGE_TRAINING }}:latest \
-            python training/train.py --output /artifacts
+            python -m training/train.py --output /artifacts
 
       - name: Validate model
         run: |
