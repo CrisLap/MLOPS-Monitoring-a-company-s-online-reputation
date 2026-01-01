@@ -1,21 +1,24 @@
 import mlflow
 import logging
 import os
+from pathlib import Path
+import tempfile
 
 try:
     import fasttext
 except ImportError:
     fasttext = None
 
-from .data_loader import load_data
-import tempfile
-from pathlib import Path
+# Usa import assoluto per evitare problemi con il -m
+from training.data_loader import load_data  
 
 logger = logging.getLogger(__name__)
 
 LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 
-MODEL_OUT = Path("models") / "sentiment_ft.bin"
+# Ora la cartella di output è parametrizzabile via variabile d'ambiente
+OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "models"))
+MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
 
 
 def setup_mlflow():
@@ -33,12 +36,7 @@ setup_mlflow()
 
 
 def _to_fasttext_format(dataset_split, path):
-    """
-    Converts a dataset split to FastText training format and writes to a file.
-    Each line in the file contains a label prefixed with '__label__' followed
-    by the corresponding text.
-    """
-    # dataset_split is a list/dict with 'text' and 'label' fields
+    """Converts dataset split to FastText format and writes to a file."""
     with open(path, "w", encoding="utf-8") as f:
         for item in dataset_split:
             lbl = LABEL_MAP.get(int(item["label"]), "neutral")
@@ -47,50 +45,27 @@ def _to_fasttext_format(dataset_split, path):
 
 
 def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
-    """
-    Trains a FastText supervised model on the TweetEval sentiment dataset.
-    Converts the training split to FastText format, trains the model with
-    specified hyperparameters, saves the model to disk, and logs it as an
-    MLflow artifact.
-
-    Args:
-        epoch: Number of training epochs
-        lr: Learning rate
-        wordNgrams: Word n-gram size
-        dim: Embedding dimension
-
-    Returns:
-        Path: Path to saved model
-
-    Raises:
-        ImportError: If fasttext is not available
-        ValueError: If dataset loading fails or parameters are invalid
-        RuntimeError: If training fails
-    """
     if fasttext is None:
         raise ImportError(
             "fasttext is not installed. Install it with: pip install fasttext"
         )
 
-    # Validate parameters
     if epoch <= 0 or lr <= 0 or dim <= 0:
         raise ValueError("epoch, lr, and dim must be positive")
 
     try:
         dataset = load_data()
         train_ds = dataset["train"]
-
-        if not train_ds or len(train_ds) == 0:
+        if not train_ds:
             raise ValueError("Training dataset is empty")
-
         logger.info(f"Loaded dataset with {len(train_ds)} training samples")
     except Exception as e:
         logger.error(f"Failed to load dataset: {e}")
         raise ValueError(f"Dataset loading failed: {e}")
 
-    MODEL_OUT.parent.mkdir(parents=True, exist_ok=True)
+    # Crea la cartella di output parametrizzabile
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Create temporary file and ensure cleanup
     train_path = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -101,32 +76,22 @@ def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
 
         logger.info(f"Created training file: {train_path}")
 
-        try:
-            with mlflow.start_run():
-                # Log hyperparameters
-                mlflow.log_params(
-                    {"epoch": epoch, "lr": lr, "wordNgrams": wordNgrams, "dim": dim}
-                )
+        with mlflow.start_run():
+            mlflow.log_params(
+                {"epoch": epoch, "lr": lr, "wordNgrams": wordNgrams, "dim": dim}
+            )
+            logger.info("Starting model training...")
+            model = fasttext.train_supervised(
+                input=train_path, epoch=epoch, lr=lr, wordNgrams=wordNgrams, dim=dim
+            )
 
-                # train supervised fastText model
-                logger.info("Starting model training...")
-                model = fasttext.train_supervised(
-                    input=train_path, epoch=epoch, lr=lr, wordNgrams=wordNgrams, dim=dim
-                )
-
-                logger.info("Training completed, saving model...")
-                model.save_model(str(MODEL_OUT))
-
-                # Log the model artifact to MLflow
-                mlflow.log_artifact(str(MODEL_OUT))
-                logger.info(f"Model saved to {MODEL_OUT} and logged to MLflow")
-        except Exception as e:
-            logger.error(f"Training failed: {e}", exc_info=True)
-            raise RuntimeError(f"Model training failed: {e}")
+            logger.info(f"Training completed, saving model to {MODEL_OUT}...")
+            model.save_model(str(MODEL_OUT))
+            mlflow.log_artifact(str(MODEL_OUT))
+            logger.info("Model logged to MLflow successfully")
 
         return MODEL_OUT
     finally:
-        # Clean up temporary file
         if train_path and os.path.exists(train_path):
             try:
                 os.unlink(train_path)
@@ -136,4 +101,22 @@ def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
 
 
 if __name__ == "__main__":
-    train()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--epoch", type=int, default=5)
+    parser.add_argument("--lr", type=float, default=0.1)
+    parser.add_argument("--wordNgrams", type=int, default=2)
+    parser.add_argument("--dim", type=int, default=100)
+    parser.add_argument(
+        "--output", type=str, default=os.getenv("OUTPUT_DIR", "models")
+    )
+    args = parser.parse_args()
+
+    # Imposta OUTPUT_DIR dinamicamente da CLI
+    OUTPUT_DIR = Path(args.output)
+    MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
+
+    train(
+        epoch=args.epoch, lr=args.lr, wordNgrams=args.wordNgrams, dim=args.dim
+    )
