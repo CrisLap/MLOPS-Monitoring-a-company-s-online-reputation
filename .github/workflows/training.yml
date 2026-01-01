@@ -54,7 +54,7 @@ jobs:
 
       - name: Validate model
         run: |
-          test -f artifacts/model.bin
+          test -f artifacts/sentiment_ft.bin
 
       - name: Save metadata
         run: |
