@@ -58,21 +58,24 @@ jobs:
 
       - name: Save metadata
         run: |
-          mkdir -p artifacts
+          mkdir -p "$GITHUB_WORKSPACE/artifacts"
         
-          EPOCH="${{ github.event.inputs.epoch || '5' }}"
-          LR="${{ github.event.inputs.lr || '0.001' }}"
+          EPOCH="5"
+          LR="0.001"
           GIT_SHA="${{ github.sha }}"
           TRAINED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
         
-          cat > artifacts/metadata.json <<EOF
+          cat > "$GITHUB_WORKSPACE/artifacts/metadata.json" <<EOF
           {
             "git_sha": "$GIT_SHA",
             "epoch": "$EPOCH",
             "lr": "$LR",
-            "trained_at": "$TRAINED_AT"
+          "trained_at": "$TRAINED_AT"
           }
-          EOF
+          EOF}
+        
+        
+      
         
       - uses: actions/upload-artifact@v4
         with:
