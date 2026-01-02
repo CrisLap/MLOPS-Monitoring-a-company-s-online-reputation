@@ -10,13 +10,13 @@ client = TestClient(app)
 def reset_metrics():
     # Pulizia delle metriche prima di ogni test
     REQUEST_COUNT._value.set(0)
-    for label in SENTIMENT_COUNTER._metrics:
+    for label in ["positive", "negative", "neutral"]:
         SENTIMENT_COUNTER.labels(label)._value.set(0)
     yield
     # Pulizia post-test (opzionale)
     REQUEST_COUNT._value.set(0)
-    for label in SENTIMENT_COUNTER._metrics:
-        SENTIMENT_COUNTER.labels(label)._value.set(0)
+    for label in ["positive", "negative", "neutral"]:
+     SENTIMENT_COUNTER.labels(label)._value.set(0)
 
 
 def test_metrics_endpoint_and_predict_updates_counters():
