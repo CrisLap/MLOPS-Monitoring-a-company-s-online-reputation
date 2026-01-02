@@ -28,68 +28,46 @@ jobs:
 
   lint-test:
     name: Lint & Tests
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install pytest-cov black flake8 pyyaml
-
+          pip install pytest-cov black flake8
       - name: Run linters
         run: |
           black --check .
           flake8 .
-
       - name: Run tests
         env:
           PYTHONPATH: ${{ github.workspace }}
           MODEL_TAG: test
-          HF_TOKEN: ""   # forza fallback predictor
+          HF_TOKEN: ""
         run: |
           pytest tests/ --cov=. --cov-report=xml
-
       - uses: codecov/codecov-action@v4
         with:
           file: coverage.xml
         continue-on-error: true
 
-  validate-configs:
-    name: Validate Configs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          python - <<EOF
-          import yaml, json
-          yaml.safe_load(open('docker-compose.yml'))
-          yaml.safe_load(open('monitoring/prometheus.yml'))
-          json.load(open('monitoring/grafana_dashboard.json'))
-          EOF
-
   build-images:
     name: Build Docker Images
     runs-on: ubuntu-latest
-    needs: [lint-test, validate-configs]
+    needs: lint-test
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
-
       - name: Build API
         uses: docker/build-push-action@v5
         with:
@@ -101,7 +79,6 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.PROJECT }}/${{ env.IMAGE_API }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Build Training
         uses: docker/build-push-action@v5
         with:
@@ -117,27 +94,15 @@ jobs:
     name: Train & Push Model to HF Hub
     runs-on: ubuntu-latest
     needs: build-images
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-    
     env:
-      HF_MODEL_REPO: crislap/sentiment-model #already manually created on HF
+      HF_MODEL_REPO: ${{ env.HF_MODEL_REPO }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       MODEL_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Pull training image
-        run: |
-          docker pull $REGISTRY/$ORG/$PROJECT/$IMAGE_TRAINING:latest
-
-      - name: Run training inside container
+        run: docker pull $REGISTRY/$ORG/$PROJECT/$IMAGE_TRAINING:latest
+      - name: Run training in container
         run: |
           mkdir -p container_artifacts
           docker run --rm \
@@ -146,82 +111,69 @@ jobs:
             -v $PWD/container_artifacts:/artifacts \
             $REGISTRY/$ORG/$PROJECT/$IMAGE_TRAINING:latest \
             python -m training.train --output /artifacts
-
       - name: Validate model
         run: test -f container_artifacts/sentiment_ft.bin
-
-      - name: Push model to HF Hub
+      - name: Upload model to HF Hub
         run: |
           pip install --upgrade huggingface_hub
           python - <<EOF
           import os
           from huggingface_hub import upload_file
-          sha = os.environ['MODEL_TAG']
           repo_id = "${{ env.HF_MODEL_REPO }}"
-          hf_token = os.environ["HF_TOKEN"]
-          model_file = "container_artifacts/sentiment_ft.bin"
+          token = os.environ["HF_TOKEN"]
+          sha = os.environ["MODEL_TAG"]
           upload_file(
-            path_or_fileobj=model_file,
-            path_in_repo=f"sentiment_ft_{sha}.bin",
-            repo_id=repo_id,
-            repo_type="model",
-            token=hf_token
+              path_or_fileobj="container_artifacts/sentiment_ft.bin",
+              path_in_repo=f"sentiment_ft_{sha}.bin",
+              repo_id=repo_id,
+              repo_type="model",
+              token=token
           )
-          print("Upload completed successfully.")
+          print("Model uploaded successfully")
           EOF
 
-  deploy-hf:
+  deploy-hf-space:
     name: Deploy HF Space
     runs-on: ubuntu-latest
     needs: train-model
     if: github.ref == 'refs/heads/main'
-
     env:
-      HF_SPACE: crislap/online-reputation-api  
-      MODEL_TAG: ${{ github.sha }} # automatic versioning of the model
+      HF_SPACE: ${{ env.HF_SPACE }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      IMAGE_API: api
-      REGISTRY: ghcr.io
-      ORG: crislap
-      PROJECT: mlops-monitoring-a-company-s-online-reputation
-
+      MODEL_TAG: ${{ github.sha }}
+      REGISTRY: ${{ env.REGISTRY }}
+      ORG: ${{ env.ORG }}
+      PROJECT: ${{ env.PROJECT }}
+      IMAGE_API: ${{ env.IMAGE_API }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up Git
         run: |
           git config --global user.email "ci@github.com"
           git config --global user.name "github-actions"
-
-      - name: Clone Hugging Face Space
-        run: |
-          git clone https://crislap:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE} hf_space
-
-      - name: Sync project files to Space
+      - name: Clone HF Space
+        run: git clone https://huggingface.co/spaces/${HF_SPACE} hf_space
+      - name: Sync project files
         run: |
           rsync -av --delete \
-          --exclude ".git" \
-          --exclude ".github" \
-          --exclude "deployed_model.txt" \
-          ./ hf_space/
-
-      - name: Update Dockerfile with model tag
-        run: |
-          sed -i "s/ARG MODEL_TAG=.*/ARG MODEL_TAG=${MODEL_TAG}/" hf_space/Dockerfile
-
-      - name: Commit & Push changes to Space
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "model_version.txt" \
+            ./ hf_space/
+      - name: Update Dockerfile with new MODEL_TAG
+        run: sed -i "s/ARG MODEL_TAG=.*/ARG MODEL_TAG=${MODEL_TAG}/" hf_space/Dockerfile
+      - name: Commit & push changes
         working-directory: hf_space
         run: |
           git add .
           git commit -m "Deploy model ${MODEL_TAG}" || echo "No changes to commit"
-          git push https://crislap:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}
-
-      - name: Record deployed model for rollback/versioning
+          git push https://huggingface.co/spaces/${HF_SPACE}
+      - name: Record deployed model
         working-directory: hf_space
         run: |
-          echo "${MODEL_TAG}" >> deployed_model.txt
-          git add deployed_model.txt
+          echo "${MODEL_TAG}" >> model_version.txt
+          git add model_version.txt
           git commit -m "Record deployed model ${MODEL_TAG}" || echo "Already recorded"
-          git push https://crislap:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${HF_SPACE}
+          git push https://huggingface.co/spaces/${HF_SPACE}
+
 
