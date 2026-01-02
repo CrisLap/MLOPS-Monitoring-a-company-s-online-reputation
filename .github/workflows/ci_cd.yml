@@ -116,7 +116,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-images
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-
+    
+    env:
+      HF_MODEL_REPO: crislap/sentiment-model #already manually created on HF
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -146,30 +149,22 @@ jobs:
 
       - name: Push model to HF Hub
         run: |
-          pip install huggingface_hub
+          pip install --upgrade huggingface_hub
           python - <<EOF
           import os
-          from huggingface_hub import HfApi, upload_file
-
+          from huggingface_hub import upload_file
           sha = os.environ['GITHUB_SHA']
           repo_id = "${{ env.HF_MODEL_REPO }}"
-
-          api = HfApi()
-
-          # Create model repo if needed
-          try:
-              api.create_repo(repo_id, repo_type="model", exist_ok=True, token="${{ secrets.HF_TOKEN }}")
-          except Exception as e:
-              print("Repo create might not be needed:", e)
-
-          # Upload the model file
+          hf_token = os.environ["HF_TOKEN"]
+          model_file = "container_artifacts/sentiment_ft.bin"
           upload_file(
-              path_or_fileobj="container_artifacts/sentiment_ft.bin",
-              path_in_repo=f"sentiment_ft_{sha}.bin",
-              repo_id=repo_id,
-              repo_type="model",
-              token="${{ secrets.HF_TOKEN }}"
+            path_or_fileobj=model_file,
+            path_in_repo=f"sentiment_ft_{sha}.bin",
+            repo_id=repo_id,
+            repo_type="model",
+            token=hf_token
           )
+          print("Upload completed successfully.")
           EOF
 
   deploy-hf:
