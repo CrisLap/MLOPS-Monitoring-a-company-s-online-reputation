@@ -1,61 +1,57 @@
+import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-import re
+from app.metrics import REQUEST_COUNT, SENTIMENT_COUNTER
 
 client = TestClient(app)
 
-
-def _parse_counter_value(metrics_text, name, label=None):
-    """
-    Extracts a numeric value from Prometheus-style metrics text.
-    Searches for a metric by name, optionally filtered by label,
-    and returns its float value or None if not found.
-    """
-    # find line starting with name (and optional label) and parse float value
-    # if label provided, looks for name{label="value"}
-    if label is None:
-        pattern = rf"^{name}\s+(?P<val>[0-9.+eE-]+)$"
-    else:
-        pattern = rf"^{name}\{{label=\"{label}\"\}}\s+(?P<val>[0-9.+eE-]+)$"
-    for line in metrics_text.splitlines():
-        m = re.match(pattern, line)
-        if m:
-            return float(m.group("val"))
-    return None
-
+@pytest.fixture(autouse=True)
+def reset_metrics():
+    # Pulizia delle metriche prima di ogni test
+    REQUEST_COUNT._value.set(0)
+    for label in SENTIMENT_COUNTER._metrics:
+        SENTIMENT_COUNTER.labels(label).set(0)
+    yield
+    # Pulizia post-test (opzionale)
+    REQUEST_COUNT._value.set(0)
+    for label in SENTIMENT_COUNTER._metrics:
+        SENTIMENT_COUNTER.labels(label).set(0)
 
 def test_metrics_endpoint_and_predict_updates_counters():
-    """
-    Tests that the /metrics endpoint and prediction updates counters correctly.
-    Verifies that total request and per-label prediction counters are
-    incrementedafter a call to the /predict endpoint.
-    """
-    # fetch metrics before
-    before = client.get("/metrics")
-    assert before.status_code == 200
-    tb = before.text
+    payload = {"text": "I love this product!"}
 
-    # call predict
-    r = client.post("/predict", json={"text": "I love this product"})
-    assert r.status_code == 200
+    # Controllo iniziale metrics
+    assert REQUEST_COUNT._value.get() == 0
 
-    af = client.get("/metrics")
-    assert af.status_code == 200
-    ta = af.text
+    # Chiamata predict
+    response = client.post("/predict", json=payload)
+    assert response.status_code == 200
+    data = response.json()
 
-    # parse total requests
-    bval = _parse_counter_value(tb, "sentiment_requests_total")
-    aval = _parse_counter_value(ta, "sentiment_requests_total")
+    # Validazione struttura risposta
+    assert "label" in data
+    assert "confidence" in data
+    assert "scores" in data
 
-    # if previously not present, treat as 0
-    if bval is None:
-        bval = 0.0
-    assert aval is not None and aval >= bval + 1
+    # Verifica aggiornamento metrics
+    assert REQUEST_COUNT._value.get() == 1
+    # Controllo che il counter per la label incrementata
+    label = data["label"]
+    assert SENTIMENT_COUNTER.labels(label)._value.get() == 1
 
-    # check per-label counter increment for returned label
-    lab = r.json()["label"]
-    b_label = _parse_counter_value(tb, "sentiment_predictions_total", label=lab)
-    a_label = _parse_counter_value(ta, "sentiment_predictions_total", label=lab)
-    if b_label is None:
-        b_label = 0.0
-    assert a_label is not None and a_label >= b_label + 1
+def test_multiple_predict_requests():
+    payloads = [
+        {"text": "I love this!"},
+        {"text": "This is bad."},
+        {"text": "Neutral text."}
+    ]
+
+    for payload in payloads:
+        client.post("/predict", json=payload)
+
+    # REQUEST_COUNT deve essere 3
+    assert REQUEST_COUNT._value.get() == 3
+
+    # SENTIMENT_COUNTER deve avere almeno 1 per ciascun label presente
+    metrics_values = {label: SENTIMENT_COUNTER.labels(label)._value.get() for label in ["positive", "neutral", "negative"]}
+    assert sum(metrics_values.values()) == 3

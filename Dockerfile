@@ -1,25 +1,61 @@
+# Base image
 FROM python:3.10-slim
 
-# System dependencies
-RUN apt-get update && apt-get install -y git curl build-essential && rm -rf /var/lib/apt/lists/*
+# ARG per passare il modello da GH Actions
+ARG MODEL_TAG=latest
 
-# Python dependencies
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt huggingface_hub fasttext
+# Environment variables
+ENV MODEL_TAG=${MODEL_TAG}
+ENV HF_TOKEN=${HF_TOKEN}
 
-# Copy app
-COPY . /app
+# Set workdir
 WORKDIR /app
 
-# Runtime environment
-ENV MODEL_TAG=latest
-ENV HF_TOKEN=""
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt \
+    && pip install fasttext huggingface_hub uvicorn gradio
 
+# Copy app source
+COPY app ./app
+
+# Optional: copy monitoring or extra files
+COPY monitoring ./monitoring
+
+# Download HF model (if available)
+RUN python - <<EOF || echo "WARNING: Fallback predictor will be used"
+import os
+from huggingface_hub import hf_hub_download
+import fasttext
+
+_model_loaded = False
+_model = None
+
+repo_id = "crislap/sentiment-model"
+tag = os.environ.get("MODEL_TAG", "latest")
+hf_token = os.environ.get("HF_TOKEN")
+
+try:
+    model_path = hf_hub_download(
+        repo_id=repo_id,
+        filename=f"sentiment_ft_{tag}.bin",
+        token=hf_token
+    )
+    _model = fasttext.load_model(model_path)
+    _model_loaded = True
+    print(f"Model loaded from {model_path}")
+except Exception as e:
+    print(f"WARNING: Could not load model ({e}), using fallback predictor")
+EOF
+
+# Expose port for Gradio
 EXPOSE 7860
+# Expose port for FastAPI
+EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
-
+# Run both FastAPI and Gradio
+# We will use uvicorn for FastAPI and launch Gradio separately
+CMD ["python", "-m", "app.main"]
 
 
 

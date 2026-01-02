@@ -1,42 +1,18 @@
-# Training image for the sentiment model
-# Usage:
-#  - Build (CPU):
-#      docker build -f docker/Dockerfile.training -t sentiment-training .
-#  - Build (GPU):
-#      docker build --build-arg BASE_IMAGE=nvidia/cuda:12.1.1-devel-ubuntu22.04 -f docker/Dockerfile.training -t sentiment-training:gpu .
-#  - Run (example):
-#      docker run --rm -e MLFLOW_TRACKING_URI="http://your-mlflow:5000" -v $(pwd)/models:/app/models sentiment-training
+FROM python:3.10-slim
 
-
-ARG BASE_IMAGE=python:3.10-slim
-FROM ${BASE_IMAGE}
-
-ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=1
 WORKDIR /app
-# Install system dependencies (REQUIRED for fasttext)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    g++ \
-    make \
-    python3-dev \
-    git \
-    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better layer caching
-COPY requirements.txt .
-RUN pip install --upgrade pip \
- && pip install --no-cache-dir \
-    --extra-index-url https://download.pytorch.org/whl/cpu \
-    -r requirements.txt
+COPY requirements.txt ./requirements.txt
+COPY requirements-dev.txt ./requirements-dev.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt -r requirements-dev.txt \
+    && pip install fasttext huggingface_hub
 
+COPY training ./training
+COPY data_drift_detection ./data_drift_detection
 
-# Copy only necessary code (exclude tests and monitoring from production image)
-COPY training/ training/
-COPY data_drift_detection/ data_drift_detection/
+WORKDIR /app/training
 
-ENV MLFLOW_TRACKING_URI=file:///tmp/mlruns
+# Default entrypoint for training
+ENTRYPOINT ["python", "-m", "training.train"]
 
-# Default command: run the training script. Can be overridden with `docker run <image> python training/train.py`.
-CMD ["python", "training/train.py"]
 

@@ -9,6 +9,7 @@ MODEL_TAG = os.environ.get("MODEL_TAG", "latest")
 HF_TOKEN = os.environ.get("HF_TOKEN")
 
 try:
+    # Scarica modello dal HF Hub
     model_path = hf_hub_download(
         repo_id="crislap/sentiment-model",
         filename=f"sentiment_ft_{MODEL_TAG}.bin",
@@ -17,6 +18,7 @@ try:
     _model = fasttext.load_model(model_path)
     _model_loaded = True
     print(f"FastText model loaded from {model_path}")
+
 except Exception as e:
     print(f"WARNING: Could not load FastText model ({e}), using fallback predictor.")
     _model_loaded = False
@@ -40,4 +42,6 @@ def predict(text: str) -> dict:
                 "negative": 0.25,
             },
         }
+
+
 

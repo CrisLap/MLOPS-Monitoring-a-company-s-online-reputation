@@ -1,20 +1,29 @@
 import gradio as gr
-from app import inference
+import uvicorn
+from app.main import app as fastapi_app
+from app.inference import predict
 
-def gr_predict(text):
-    result = inference.predict(text)
-    return result["label"], result["confidence"]
+# Funzione wrapper per Gradio
+def gradio_predict(text):
+    result = predict(text)
+    return f"Label: {result['label']}\nConfidence: {result['confidence']:.2f}"
 
-demo = gr.Interface(
-    fn=gr_predict,
-    inputs=gr.Textbox(lines=3, placeholder="Inserisci testo qui..."),
-    outputs=[
-        gr.Textbox(label="Predicted Label"),
-        gr.Number(label="Confidence"),
-    ],
-    title="Sentiment Analysis Demo",
-    description="Demo interattiva del modello di sentiment"
+# Gradio interface
+iface = gr.Interface(
+    fn=gradio_predict,
+    inputs=gr.Textbox(lines=2, placeholder="Scrivi qui il testo"),
+    outputs="text",
+    title="Sentiment Analysis",
+    description="Inserisci un testo e ottieni predizione di sentiment."
 )
 
-demo.launch(server_name="0.0.0.0", server_port=7860, share=True)
+if __name__ == "__main__":
+    # Launch Gradio e FastAPI insieme
+    iface.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=True,      # opzionale, crea link pubblico temporaneo
+        inline=False
+    )
+
 

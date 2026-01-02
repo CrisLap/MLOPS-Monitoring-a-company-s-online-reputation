@@ -1,13 +1,5 @@
 from prometheus_client import Counter, Histogram
 
-REQUEST_COUNT = Counter(
-    "sentiment_requests_total", "Total number of sentiment prediction requests"
-)
-
-REQUEST_LATENCY = Histogram(
-    "sentiment_request_latency_seconds", "Latency of sentiment prediction requests"
-)
-
-SENTIMENT_COUNTER = Counter(
-    "sentiment_predictions_total", "Number of predictions per sentiment", ["label"]
-)
+REQUEST_COUNT = Counter("request_count", "Number of requests")
+REQUEST_LATENCY = Histogram("request_latency_seconds", "Request latency")
+SENTIMENT_COUNTER = Counter("sentiment_count", "Sentiment label counts", ["label"])
