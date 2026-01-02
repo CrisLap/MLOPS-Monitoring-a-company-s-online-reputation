@@ -148,21 +148,28 @@ jobs:
         run: |
           pip install huggingface_hub
           python - <<EOF
-          from huggingface_hub import HfApi, Repository
-          import shutil, os
+          import os
+          from huggingface_hub import HfApi, upload_file
+
           sha = os.environ['GITHUB_SHA']
-          model_file = "container_artifacts/sentiment_ft.bin"
-
           repo_id = "${{ env.HF_MODEL_REPO }}"
-          api = HfApi()
-          if not api.repo_exists(repo_id):
-              api.create_repo(repo_id, repo_type="model")
 
-          repo = Repository(local_dir="hf_model_tmp", clone_from=repo_id, use_auth_token="${{ secrets.HF_TOKEN }}")
-          shutil.copy(model_file, f"hf_model_tmp/sentiment_ft_{sha}.bin")
-          repo.git_add(auto_lfs_track=True)
-          repo.git_commit(f"Add model {sha}")
-          repo.git_push()
+          api = HfApi()
+
+          # Create model repo if needed
+          try:
+              api.create_repo(repo_id, repo_type="model", exist_ok=True, token="${{ secrets.HF_TOKEN }}")
+          except Exception as e:
+              print("Repo create might not be needed:", e)
+
+          # Upload the model file
+          upload_file(
+              path_or_fileobj="container_artifacts/sentiment_ft.bin",
+              path_in_repo=f"sentiment_ft_{sha}.bin",
+              repo_id=repo_id,
+              repo_type="model",
+              token="${{ secrets.HF_TOKEN }}"
+          )
           EOF
 
   deploy-hf:
