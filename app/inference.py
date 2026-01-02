@@ -28,11 +28,21 @@ except Exception as e:
 def predict(text: str) -> dict:
     """
     Restituisce la predizione di sentiment.
-    Se il modello non è caricato, usa un fallback.
+    Se il modello non è caricato, usa un fallback conforme a SentimentResponse.
     """
     if _model_loaded and _model:
         label, prob = _model.predict(text)
-        return {"label": label[0], "score": prob[0]}
+        # scores può essere un dict con tutte le classi previste
+        return {
+            "label": label[0],
+            "confidence": float(prob[0]),
+            "scores": {label[0]: float(prob[0])}  # struttura minima compatibile
+        }
     else:
-        # fallback semplice: sentiment neutro
-        return {"label": "neutral", "score": 0.5}
+        # fallback completo per evitare errori di validazione
+        return {
+            "label": "neutral",
+            "confidence": 0.5,
+            "scores": {"neutral": 0.5, "positive": 0.25, "negative": 0.25}  # valori dummy
+        }
+
