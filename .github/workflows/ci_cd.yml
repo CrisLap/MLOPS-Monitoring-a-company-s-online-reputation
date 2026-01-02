@@ -200,7 +200,13 @@ jobs:
 
       - name: Sync project files to Space
         run: |
-          rsync -av --delete --exclude ".git" --exclude ".github" ./ hf_space/
+          - name: Sync project files to Space
+            run: |
+              rsync -av --delete \
+              --exclude ".git" \
+              --exclude ".github" \
+              --exclude "deployed_model.txt" \
+              ./ hf_space/
 
       - name: Update Dockerfile with model tag
         run: |
