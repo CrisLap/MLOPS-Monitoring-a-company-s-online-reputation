@@ -1,6 +1,15 @@
 # Base image
 FROM python:3.10-slim
 
+# Aggiorna sistema e installa dipendenze di build
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    g++ \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # ARG per passare il modello da GH Actions
 ARG MODEL_TAG=latest
 
