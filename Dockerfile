@@ -1,40 +1,26 @@
-# Base image
 FROM python:3.10-slim
 
-# Install system dependencies
+# System dependencies
 RUN apt-get update && apt-get install -y git curl build-essential && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+# Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt huggingface_hub fasttext
 
-# ARG for versioned model
-ARG MODEL_TAG=latest
-
-# Download model from Hugging Face Hub
-RUN python - <<EOF
-from huggingface_hub import hf_hub_download
-import os
-
-repo_id = "crislap/sentiment-model"  # HF model repo
-tag = os.environ.get("MODEL_TAG", "latest")
-
-# Path where the model will be stored
-model_path = hf_hub_download(repo_id=repo_id, filename=f"sentiment_ft_{tag}.bin")
-
-print(f"Model downloaded at: {model_path}")
-EOF
-
-# Copy API code
+# Copy app
 COPY . /app
 WORKDIR /app
 
-# Expose default port for Gradio / FastAPI
+# Runtime environment
+ENV MODEL_TAG=latest
+ENV HF_TOKEN=""
+
 EXPOSE 7860
 
-# Run API
-CMD ["python", "app.py"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+
+
 
 
 # Add health check

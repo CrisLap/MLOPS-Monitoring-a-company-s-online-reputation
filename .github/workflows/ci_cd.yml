@@ -169,18 +169,23 @@ jobs:
           EOF
 
   deploy-hf:
-    name: Deploy HF Space with Versioned Model
+    name: Deploy HF Space
     runs-on: ubuntu-latest
     needs: train-model
     if: github.ref == 'refs/heads/main'
 
     env:
       HF_SPACE: crislap/online-reputation-api  
-      MODEL_TAG: ${{ github.sha }}
+      MODEL_TAG: ${{ github.sha }} # automatic versioning of the model
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      IMAGE_API: api
+      REGISTRY: ghcr.io
+      ORG: crislap
+      PROJECT: mlops-monitoring-a-company-s-online-reputation
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Git
         run: |
@@ -199,18 +204,14 @@ jobs:
         run: |
           sed -i "s/ARG MODEL_TAG=.*/ARG MODEL_TAG=${MODEL_TAG}/" hf_space/Dockerfile
 
-      - name: Commit changes
+      - name: Commit & Push changes to Space
         working-directory: hf_space
         run: |
           git add .
-          git commit -m "Deploy model ${MODEL_TAG}" || echo "No changes"
+          git commit -m "Deploy model ${MODEL_TAG}" || echo "No changes to commit"
+          git push https://crislap:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}
 
-      - name: Push to HF Space
-        working-directory: hf_space
-        run: |
-          git push https://crislap:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${HF_SPACE}
-
-      - name: Record deployed model
+      - name: Record deployed model for rollback/versioning
         working-directory: hf_space
         run: |
           echo "${MODEL_TAG}" >> deployed_model.txt
