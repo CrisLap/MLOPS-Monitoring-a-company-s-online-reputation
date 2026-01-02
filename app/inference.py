@@ -13,7 +13,7 @@ try:
     model_path = hf_hub_download(
         repo_id="crislap/sentiment-model",
         filename=f"sentiment_ft_{MODEL_TAG}.bin",
-        token=HF_TOKEN
+        token=HF_TOKEN,
     )
     # Carica FastText
     _model = fasttext.load_model(model_path)
@@ -23,6 +23,7 @@ try:
 except Exception as e:
     print(f"WARNING: Could not load FastText model ({e}), using fallback predictor.")
     _model_loaded = False
+
 
 def predict(text: str) -> dict:
     """
@@ -35,4 +36,3 @@ def predict(text: str) -> dict:
     else:
         # fallback semplice: sentiment neutro
         return {"label": "neutral", "score": 0.5}
-
