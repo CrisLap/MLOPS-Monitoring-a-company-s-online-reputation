@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline with HF Deployment
 
 on:
   push:
@@ -17,6 +17,12 @@ env:
   PROJECT: mlops-monitoring-a-company-s-online-reputation
   IMAGE_API: api
   IMAGE_TRAINING: training
+  HF_MODEL_REPO: crislap/sentiment-model
+  HF_SPACE: crislap/online-reputation-api
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
 
@@ -36,18 +42,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install pytest-cov
-      
-      - name: Install linting dependencies
-        run: |
-          pip install --upgrade pip
-          pip install black flake8 pyyaml
+          pip install pytest-cov black flake8 pyyaml
 
       - name: Run linters
         run: |
           black --check .
           flake8 .
-
 
       - name: Run tests
         env:
@@ -111,20 +111,105 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-hf:
-    name: Deploy HF Space
+  train-model:
+    name: Train & Push Model to HF Hub
     runs-on: ubuntu-latest
     needs: build-images
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - run: |
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull training image
+        run: |
+          docker pull $REGISTRY/$ORG/$PROJECT/$IMAGE_TRAINING:latest
+
+      - name: Run training inside container
+        run: |
+          mkdir -p container_artifacts
+          docker run --rm \
+            -e EPOCH=${{ github.event.inputs.epoch || '5' }} \
+            -e LR=${{ github.event.inputs.lr || '0.1' }} \
+            -v $PWD/container_artifacts:/artifacts \
+            $REGISTRY/$ORG/$PROJECT/$IMAGE_TRAINING:latest \
+            python -m training.train --output /artifacts
+
+      - name: Validate model
+        run: test -f container_artifacts/sentiment_ft.bin
+
+      - name: Push model to HF Hub
+        run: |
           pip install huggingface_hub
           python - <<EOF
-          from huggingface_hub import login
-          login("${{ secrets.HF_TOKEN }}")
+          from huggingface_hub import HfApi, Repository
+          import shutil, os
+          sha = os.environ['GITHUB_SHA']
+          model_file = "container_artifacts/sentiment_ft.bin"
+
+          repo_id = "${{ env.HF_MODEL_REPO }}"
+          api = HfApi()
+          if not api.repo_exists(repo_id):
+              api.create_repo(repo_id, repo_type="model")
+
+          repo = Repository(local_dir="hf_model_tmp", clone_from=repo_id, use_auth_token="${{ secrets.HF_TOKEN }}")
+          shutil.copy(model_file, f"hf_model_tmp/sentiment_ft_{sha}.bin")
+          repo.git_add(auto_lfs_track=True)
+          repo.git_commit(f"Add model {sha}")
+          repo.git_push()
           EOF
 
-      - run: |
-          docker build -t hf-space-api .
+  deploy-hf:
+    name: Deploy HF Space with Versioned Model
+    runs-on: ubuntu-latest
+    needs: train-model
+    if: github.ref == 'refs/heads/main'
+
+    env:
+      HF_SPACE: ${{ secrets.HF_SPACE }}
+      MODEL_TAG: ${{ github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "github-actions"
+
+      - name: Clone HF Space
+        run: git clone https://huggingface.co/spaces/${HF_SPACE} hf_space
+
+      - name: Sync project files to Space
+        run: |
+          rsync -av --delete --exclude ".git" --exclude ".github" ./ hf_space/
+
+      - name: Update Dockerfile with model tag
+        run: |
+          sed -i "s/ARG MODEL_TAG=.*/ARG MODEL_TAG=${MODEL_TAG}/" hf_space/Dockerfile
+
+      - name: Commit changes
+        working-directory: hf_space
+        run: |
+          git add .
+          git commit -m "Deploy model ${MODEL_TAG}" || echo "No changes"
+
+      - name: Push to HF Space
+        working-directory: hf_space
+        run: |
+          git push https://crislap:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${HF_SPACE}
+
+      - name: Record deployed model
+        working-directory: hf_space
+        run: |
+          echo "${MODEL_TAG}" >> deployed_model.txt
+          git add deployed_model.txt
+          git commit -m "Record deployed model ${MODEL_TAG}" || echo "Already recorded"
+          git push https://crislap:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${HF_SPACE}
+
