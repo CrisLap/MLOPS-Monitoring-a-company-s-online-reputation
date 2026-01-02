@@ -16,7 +16,7 @@ def reset_metrics():
     # Pulizia post-test (opzionale)
     REQUEST_COUNT._value.set(0)
     for label in ["positive", "negative", "neutral"]:
-     SENTIMENT_COUNTER.labels(label)._value.set(0)
+        SENTIMENT_COUNTER.labels(label)._value.set(0)
 
 
 def test_metrics_endpoint_and_predict_updates_counters():
