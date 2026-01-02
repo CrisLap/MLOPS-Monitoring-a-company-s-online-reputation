@@ -42,6 +42,3 @@ def predict(text: str) -> dict:
                 "negative": 0.25,
             },
         }
-
-
-

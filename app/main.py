@@ -10,15 +10,20 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Sentiment API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+)
+
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
+
 @app.get("/ready")
 def readiness_check():
     return {"model_loaded": getattr(inference, "_model_loaded", False)}
+
 
 @app.post("/predict", response_model=SentimentResponse)
 def predict_endpoint(req: SentimentRequest):
@@ -32,4 +37,3 @@ def predict_endpoint(req: SentimentRequest):
     except Exception as e:
         REQUEST_LATENCY.observe(time.time() - start)
         raise HTTPException(status_code=500, detail=str(e))
-

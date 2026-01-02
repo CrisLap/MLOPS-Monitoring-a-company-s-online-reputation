@@ -5,6 +5,7 @@ from app.metrics import REQUEST_COUNT, SENTIMENT_COUNTER
 
 client = TestClient(app)
 
+
 @pytest.fixture(autouse=True)
 def reset_metrics():
     # Pulizia delle metriche prima di ogni test
@@ -16,6 +17,7 @@ def reset_metrics():
     REQUEST_COUNT._value.set(0)
     for label in SENTIMENT_COUNTER._metrics:
         SENTIMENT_COUNTER.labels(label).set(0)
+
 
 def test_metrics_endpoint_and_predict_updates_counters():
     payload = {"text": "I love this product!"}
@@ -39,11 +41,12 @@ def test_metrics_endpoint_and_predict_updates_counters():
     label = data["label"]
     assert SENTIMENT_COUNTER.labels(label)._value.get() == 1
 
+
 def test_multiple_predict_requests():
     payloads = [
         {"text": "I love this!"},
         {"text": "This is bad."},
-        {"text": "Neutral text."}
+        {"text": "Neutral text."},
     ]
 
     for payload in payloads:
@@ -53,5 +56,8 @@ def test_multiple_predict_requests():
     assert REQUEST_COUNT._value.get() == 3
 
     # SENTIMENT_COUNTER deve avere almeno 1 per ciascun label presente
-    metrics_values = {label: SENTIMENT_COUNTER.labels(label)._value.get() for label in ["positive", "neutral", "negative"]}
+    metrics_values = {
+        label: SENTIMENT_COUNTER.labels(label)._value.get()
+        for label in ["positive", "neutral", "negative"]
+    }
     assert sum(metrics_values.values()) == 3
