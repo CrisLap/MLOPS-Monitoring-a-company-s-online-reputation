@@ -16,7 +16,9 @@ on:
 
   schedule:
     - cron: "0 2 * * 4"
-
+permissions:
+  contents: read
+  packages: read
 env:
   REGISTRY: ghcr.io
   ORG: crislap
