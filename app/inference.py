@@ -36,13 +36,16 @@ def predict(text: str) -> dict:
         return {
             "label": label[0],
             "confidence": float(prob[0]),
-            "scores": {label[0]: float(prob[0])}  # struttura minima compatibile
+            "scores": {label[0]: float(prob[0])},  # struttura minima compatibile
         }
     else:
         # fallback completo per evitare errori di validazione
         return {
             "label": "neutral",
             "confidence": 0.5,
-            "scores": {"neutral": 0.5, "positive": 0.25, "negative": 0.25}  # valori dummy
+            "scores": {
+                "neutral": 0.5,
+                "positive": 0.25,
+                "negative": 0.25,
+            },  # valori dummy
         }
-
