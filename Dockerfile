@@ -1,35 +1,42 @@
+# Base image
 FROM python:3.10-slim
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y git curl build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install system dependencies (REQUIRED for fasttext)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-build-essential \
-g++ \
-make \
-&& rm -rf /var/lib/apt/lists/*
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt huggingface_hub fasttext
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# ARG for versioned model
+ARG MODEL_TAG=latest
 
+# Download model from Hugging Face Hub
+RUN python - <<EOF
+from huggingface_hub import hf_hub_download
+import os
+
+repo_id = "crislap/sentiment-model"  # HF model repo
+tag = os.environ.get("MODEL_TAG", "latest")
+
+# Path where the model will be stored
+model_path = hf_hub_download(repo_id=repo_id, filename=f"sentiment_ft_{tag}.bin")
+
+print(f"Model downloaded at: {model_path}")
+EOF
+
+# Copy API code
+COPY . /app
 WORKDIR /app
 
-# Copy requirements first for better layer caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Expose default port for Gradio / FastAPI
+EXPOSE 7860
 
-# Copy only necessary app files
-COPY app/ app/
+# Run API
+CMD ["python", "app.py"]
 
-# Change ownership to non-root user
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
-
-EXPOSE 8000
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()" || exit 1
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -120,6 +120,7 @@ jobs:
     env:
       HF_MODEL_REPO: crislap/sentiment-model #already manually created on HF
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      MODEL_TAG: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -153,7 +154,7 @@ jobs:
           python - <<EOF
           import os
           from huggingface_hub import upload_file
-          sha = os.environ['GITHUB_SHA']
+          sha = os.environ['MODEL_TAG']
           repo_id = "${{ env.HF_MODEL_REPO }}"
           hf_token = os.environ["HF_TOKEN"]
           model_file = "container_artifacts/sentiment_ft.bin"
