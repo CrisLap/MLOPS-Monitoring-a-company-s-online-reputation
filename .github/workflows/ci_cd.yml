@@ -174,8 +174,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     env:
-      HF_SPACE: ${{ secrets.HF_SPACE }}
+      HF_SPACE: crislap/online-reputation-api  
       MODEL_TAG: ${{ github.sha }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -185,8 +186,9 @@ jobs:
           git config --global user.email "ci@github.com"
           git config --global user.name "github-actions"
 
-      - name: Clone HF Space
-        run: git clone https://huggingface.co/spaces/${HF_SPACE} hf_space
+      - name: Clone Hugging Face Space
+        run: |
+          git clone https://crislap:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE} hf_space
 
       - name: Sync project files to Space
         run: |
