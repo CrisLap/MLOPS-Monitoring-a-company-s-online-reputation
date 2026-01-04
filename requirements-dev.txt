@@ -4,3 +4,4 @@ SQLAlchemy>=1.4
 psycopg2-binary>=2.9
 apache-airflow>=2.9,<3
 black
+flake8

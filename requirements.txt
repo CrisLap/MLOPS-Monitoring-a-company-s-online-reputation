@@ -14,4 +14,3 @@ scikit-learn==1.2.2
 uvicorn[standard]==0.23.2
 fasttext==0.9.3
 huggingface_hub
-gradio
