@@ -57,7 +57,7 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install -r requirements.txt
-      - run: python -m training.train.py --epoch 5
+      - run: python -m training.train --epoch 5
       - run: |
           pip install huggingface_hub
           python - <<EOF
