@@ -1,10 +1,16 @@
 import fasttext
+import os
 from huggingface_hub import hf_hub_download
 
 MODEL_REPO = "CrisLap/sentiment-model"
 MODEL_FILE = "sentiment_ft.bin"
 
-model_path = hf_hub_download(repo_id=MODEL_REPO, filename=MODEL_FILE)
+token = os.getenv("HF_TOKEN")
+model_path = hf_hub_download(
+    repo_id="CrisLap/sentiment-model", 
+    filename="sentiment_ft.bin",
+    token=token
+) 
 model = fasttext.load_model(model_path)
 
 
