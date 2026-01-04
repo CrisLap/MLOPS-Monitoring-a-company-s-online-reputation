@@ -14,7 +14,7 @@ def predict_sentiment(req: SentimentRequest):
     label, score = predict(req.text)
     REQUEST_LATENCY.observe(time.time() - start)
     REQUEST_COUNT.inc()
-    SENTIMENT_COUNTER.labels(label=label).inc()
+    SENTIMENT_COUNTER.labels(sentiment=label).inc()
     return SentimentResponse(label=label, score=score)
 
 
