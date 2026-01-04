@@ -81,11 +81,11 @@ jobs:
           git config --global user.email "ci@github.com"
           git config --global user.name "CI Bot"
       - run: |
-          # 1. Configura Git per usare il token nell'header per ogni richiesta a huggingface.co
-          git config --global http.https://huggingface.co/.extraheader "Authorization: Bearer ${HF_TOKEN}"
+          # 1. Rimuovi eventuali configurazioni precedenti per pulizia
+          git config --global --unset-all http.https://huggingface.co/.extraheader || true
 
-          # 2. Esegui il push usando l'URL standard (senza credenziali in chiaro)
-          git push --force https://huggingface.co/spaces/${HF_SPACE_REPO} main
+          # 2. Esegui il push usando il token come username (formato supportato da HF per automation)
+          git push --force https://token:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO} main
 
 
 
