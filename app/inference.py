@@ -7,10 +7,8 @@ MODEL_FILE = "sentiment_ft.bin"
 
 token = os.getenv("HF_TOKEN")
 model_path = hf_hub_download(
-    repo_id="CrisLap/sentiment-model", 
-    filename="sentiment_ft.bin",
-    token=token
-) 
+    repo_id="CrisLap/sentiment-model", filename="sentiment_ft.bin", token=token
+)
 model = fasttext.load_model(model_path)
 
 
