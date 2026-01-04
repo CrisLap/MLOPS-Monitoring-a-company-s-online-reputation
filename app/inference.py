@@ -29,11 +29,12 @@ except Exception as e:
     print(f"Errore durante il caricamento del modello: {e}")
     model = None
 
+
 def predict(text):
     if model is None:
         # Restituiamo un valore predefinito per non far fallire i test dell'API
         return "label_error", 0.0
-    
+
     # FastText restituisce ([('__label__positive',)], [array([0.95])])
     prediction = model.predict(text)
     label = prediction[0][0].replace("__label__", "")
