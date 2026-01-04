@@ -13,6 +13,7 @@ env:
   IMAGE_TRAINING: sentiment-training
   HF_MODEL_REPO: CrisLap/sentiment-model
   HF_SPACE_REPO: CrisLap/online-reputation-api
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
 jobs:
   validate:
@@ -80,7 +81,11 @@ jobs:
           git config --global user.email "ci@github.com"
           git config --global user.name "CI Bot"
       - run: |
-          git push --force https://CrisLap:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO} main
+          # 1. Configura Git per usare il token nell'header per ogni richiesta a huggingface.co
+          git config --global http.https://huggingface.co/.extraheader "Authorization: Bearer ${HF_TOKEN}"
+
+          # 2. Esegui il push usando l'URL standard (senza credenziali in chiaro)
+          git push --force https://huggingface.co/spaces/${HF_SPACE_REPO} main
 
 
 
