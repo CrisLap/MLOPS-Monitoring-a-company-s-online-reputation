@@ -2,7 +2,7 @@ from prometheus_client import Counter, Histogram
 
 REQUEST_COUNT = Counter("api_requests_total", "Total API requests")
 
-LATENCY = Histogram("api_latency_seconds", "API latency")
+REQUEST_LATENCY = Histogram("api_latency_seconds", "API latency")
 
 SENTIMENT_COUNTER = Counter(
     "api_sentiments_total", "Total sentiments processed", ["sentiment"]
