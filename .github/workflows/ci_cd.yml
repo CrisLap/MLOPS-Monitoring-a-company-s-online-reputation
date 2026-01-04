@@ -80,7 +80,7 @@ jobs:
           git config --global user.email "ci@github.com"
           git config --global user.name "CI Bot"
       - run: |
-          git push --force ***huggingface.co/spaces/${HF_SPACE_REPO}.git main
+          git push --force https://CrisLap:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_REPO} main
 
 
 
