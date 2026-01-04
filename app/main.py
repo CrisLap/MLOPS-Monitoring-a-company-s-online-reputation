@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.schemas import SentimentRequest, SentimentResponse
 from app.inference import predict
-from app.metrics import REQUEST_COUNT, REQUEST_LATENCY
+from app.metrics import REQUEST_COUNT, REQUEST_LATENCY, SENTIMENT_COUNTER
 
 import time
 
@@ -14,6 +14,7 @@ def predict_sentiment(req: SentimentRequest):
     label, score = predict(req.text)
     REQUEST_LATENCY.observe(time.time() - start)
     REQUEST_COUNT.inc()
+    SENTIMENT_COUNTER.labels(label=label).inc()
     return SentimentResponse(label=label, score=score)
 
 

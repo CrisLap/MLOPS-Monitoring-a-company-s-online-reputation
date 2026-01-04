@@ -32,7 +32,7 @@ def test_metrics_endpoint_and_predict_updates_counters():
 
     # Validazione struttura risposta
     assert "label" in data
-    assert "confidence" in data
+    assert "score" in data
     assert "scores" in data
 
     # Verifica aggiornamento metrics
