@@ -7,6 +7,7 @@ import time
 
 app = FastAPI(title="Online Reputation API")
 
+
 @app.post("/predict", response_model=SentimentResponse)
 def predict_sentiment(req: SentimentRequest):
     start = time.time()
@@ -14,6 +15,7 @@ def predict_sentiment(req: SentimentRequest):
     LATENCY.observe(time.time() - start)
     REQUEST_COUNT.inc()
     return SentimentResponse(label=label, score=score)
+
 
 @app.get("/health")
 def health():

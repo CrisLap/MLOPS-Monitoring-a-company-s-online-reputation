@@ -9,8 +9,4 @@ with DAG(
     catchup=False,
 ) as dag:
 
-    train = BashOperator(
-        task_id="train",
-        bash_command="python training/train.py"
-    )
-
+    train = BashOperator(task_id="train", bash_command="python training/train.py")
