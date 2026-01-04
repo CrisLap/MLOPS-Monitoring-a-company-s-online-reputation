@@ -1,8 +1,8 @@
 FROM python:3.10
 
 WORKDIR /train
-COPY requirement.txt .
-RUN pip install -r requirement.txt
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 COPY training training
 CMD ["python", "training/train.py"]
