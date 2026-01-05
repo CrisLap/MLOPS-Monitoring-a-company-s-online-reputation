@@ -1,17 +1,3 @@
----
-title: Online Reputation API
-emoji: 📈
-colorFrom: blue
-colorTo: green
 sdk: docker
 pinned: false
----
-
-# MLOps Monitoring - Online Reputation
-Questo Space ospita l'API per il monitoraggio della reputazione online tramite sentiment analysis.
-
-# Dettagli Tecnici
-# Framework: FastAPI
-# Modello: FastText
-# Monitoring: Prometheus & Grafenacloud
 
