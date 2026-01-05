@@ -7,6 +7,10 @@ import time
 
 app = FastAPI(title="Online Reputation API")
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
 
 @app.post("/predict", response_model=SentimentResponse)
 def predict_sentiment(req: SentimentRequest):
