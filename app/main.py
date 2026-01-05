@@ -7,6 +7,7 @@ import time
 
 app = FastAPI(title="Online Reputation API")
 
+
 @app.get("/")
 def root():
     return {"status": "ok"}
