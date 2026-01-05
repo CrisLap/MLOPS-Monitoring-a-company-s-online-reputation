@@ -30,7 +30,7 @@ except Exception as e:
 
 
 def predict(text):
-    """Return sentiment label and confidence for text; 
+    """Return sentiment label and confidence for text;
     returns ('label_error', 0.0) if model is None."""
     if model is None:
         # return a default value to prevent API tests from failing.

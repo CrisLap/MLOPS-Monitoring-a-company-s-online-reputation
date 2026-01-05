@@ -113,7 +113,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, default=os.getenv("OUTPUT_DIR", "models"))
     args = parser.parse_args()
 
-    
     OUTPUT_DIR = Path(args.output)
     MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
 
