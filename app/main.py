@@ -11,18 +11,22 @@ import time
 import os
 
 
-app = FastAPI(title="Online Reputation API",
-            docs_url="/docs",
-            redoc_url="/redoc",
-            openapi_url="/openapi.json")
+app = FastAPI(
+    title="Online Reputation API",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
 
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
 
+
 REPO_ID = os.getenv("HF_MODEL_REPO", "CrisLap/sentiment-model")
-TOKEN = os.getenv("HF_TOKEN")  
+TOKEN = os.getenv("HF_TOKEN")
+
 
 @app.get("/model")
 def model_info():
@@ -30,26 +34,23 @@ def model_info():
     try:
         # Lista tutti i file nel repo
         files = api.list_repo_files(repo_id=REPO_ID, token=TOKEN)
-        
+
         # Filtra solo i file dei modelli sentiment_ft*.bin
         model_files = sorted(
             [f for f in files if f.startswith("sentiment_ft") and f.endswith(".bin")]
         )
-        
+
         # Prendi l'ultimo (più recente) file
         latest_file = model_files[-1] if model_files else None
 
         return {
             "model_loaded": latest_file is not None,
             "model_id": REPO_ID,
-            "latest_model_file": latest_file
+            "latest_model_file": latest_file,
         }
 
     except Exception as e:
-        return {
-            "model_loaded": False,
-            "error": str(e)
-        }
+        return {"model_loaded": False, "error": str(e)}
 
 
 @app.get("/metrics")
@@ -59,7 +60,6 @@ def metrics():
     """
     data = generate_latest()  # genera output in formato Prometheus
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
-
 
 
 # --- READINESS ENDPOINT ---
@@ -74,7 +74,7 @@ def readiness():
         return Response(
             content='{"ready": false, "message": "Model not loaded"}',
             media_type="application/json",
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
 
@@ -91,4 +91,3 @@ def predict_sentiment(req: SentimentRequest):
     REQUEST_COUNT.inc()
     SENTIMENT_COUNTER.labels(sentiment=label).inc()
     return SentimentResponse(label=label, score=score)
-
