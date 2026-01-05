@@ -1,3 +1,17 @@
+---
+title: Online Reputation API
+emoji: 📈
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
+# Online Reputation Monitoring
+Questa applicazione utilizza FastAPI e Docker per monitorare la reputazione online.
+
+
+
 # Monitoring a company's online reputation
 
 [![CI/CD Pipeline](https://github.com/USERNAME/REPO_NAME/actions/workflows/ci_cd.yml/badge.svg)](https://github.com/USERNAME/REPO_NAME/actions/workflows/ci_cd.yml)
