@@ -9,19 +9,20 @@ try:
 except ImportError:
     fasttext = None
 
-# Usa import assoluto per evitare problemi con il -m
+
 from training.data_loader import load_data
 
 logger = logging.getLogger(__name__)
 
 LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 
-# Ora la cartella di output è parametrizzabile via variabile d'ambiente
+
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "models"))
 MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
 
 
 def setup_mlflow():
+    """Initialize MLflow tracking, falling back to local mode if unavailable."""
     uri = os.getenv("MLFLOW_TRACKING_URI", "")
     try:
         mlflow.set_tracking_uri(uri)
@@ -45,6 +46,7 @@ def _to_fasttext_format(dataset_split, path):
 
 
 def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
+    """Train a FastText model on the dataset and log it to MLflow."""
     if fasttext is None:
         raise ImportError(
             "fasttext is not installed. Install it with: pip install fasttext"
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, default=os.getenv("OUTPUT_DIR", "models"))
     args = parser.parse_args()
 
-    # Imposta OUTPUT_DIR dinamicamente da CLI
+    
     OUTPUT_DIR = Path(args.output)
     MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
 

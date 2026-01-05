@@ -21,6 +21,7 @@ app = FastAPI(
 
 @app.get("/", include_in_schema=False)
 def root():
+    """Redirect to the API documentation (/docs)."""
     return RedirectResponse(url="/docs")
 
 
@@ -30,17 +31,18 @@ TOKEN = os.getenv("HF_TOKEN")
 
 @app.get("/model")
 def model_info():
+    """Return info about the latest sentiment model in the repository."""
     api = HfApi()
     try:
-        # Lista tutti i file nel repo
+        # List all files in the repository
         files = api.list_repo_files(repo_id=REPO_ID, token=TOKEN)
 
-        # Filtra solo i file dei modelli sentiment_ft*.bin
+        # Filter only sentiment_ft*.bin template files
         model_files = sorted(
             [f for f in files if f.startswith("sentiment_ft") and f.endswith(".bin")]
         )
 
-        # Prendi l'ultimo (più recente) file
+        # Get the latest (most recent) file
         latest_file = model_files[-1] if model_files else None
 
         return {
@@ -56,7 +58,7 @@ def model_info():
 @app.get("/metrics")
 def metrics():
     """
-    Espone le metriche Prometheus.
+    Expose Prometheus metrics.
     """
     data = generate_latest()  # genera output in formato Prometheus
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
@@ -66,7 +68,7 @@ def metrics():
 @app.get("/ready")
 def readiness():
     """
-    Verifica se l'app è pronta a ricevere richieste.
+    Check if the app is ready to receive requests.
     """
     if latest_file:
         return {"ready": True, "message": "Model is loaded"}
@@ -80,11 +82,13 @@ def readiness():
 
 @app.get("/health")
 def health():
+    """Return the health status of the API."""
     return {"status": "ok"}
 
 
 @app.post("/predict", response_model=SentimentResponse)
 def predict_sentiment(req: SentimentRequest):
+    """Predict sentiment for input text and update Prometheus metrics."""
     start = time.time()
     label, score = predict(req.text)
     REQUEST_LATENCY.observe(time.time() - start)

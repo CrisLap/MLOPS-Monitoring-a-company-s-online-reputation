@@ -1,79 +1,34 @@
-version: "3.8"
+version: "3.9"
 
 services:
-  mlflow:
-    image: python:3.10-slim
-    container_name: sentiment-mlflow
-    environment:
-      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow/mlflow.db
-      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
-    volumes:
-      - ./mlflow:/mlflow
-    ports:
-      - "5000:5000"
-    command: >
-      sh -c "pip install mlflow &&
-             mlflow server --host 0.0.0.0 --port 5000
-             --backend-store-uri sqlite:///mlflow/mlflow.db
-             --default-artifact-root /mlflow/artifacts"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - mlops-network
-    restart: unless-stopped
-
   api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: sentiment-api
-    environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
-    volumes:
-      - ./models:/app/models:ro
+      dockerfile: Dockerfile  # Use the main Dockerfile for the FastAPI service
+    container_name: sentiment_api
     ports:
-      - "8000:8000"
+      - "7860:7860"  # Expose FastAPI on port 7860
+    environment:
+      HF_MODEL_REPO: "CrisLap/sentiment-model"  # Hugging Face model repository
+      HF_TOKEN: "${HF_TOKEN}"  # Hugging Face token from local environment
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"  # Optional: MLflow tracking server
     depends_on:
-      mlflow:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - mlops-network
-    restart: unless-stopped
+      - training  # Optional: start training container first
+    volumes:
+      - ./app:/app  # Mount local app code for development
+      - ./models:/app/models  # Share model folder with container
 
   training:
     build:
       context: .
-      dockerfile: Dockerfile.training
-    container_name: sentiment-training
+      dockerfile: Dockerfile.training  # Use Dockerfile for training
+    container_name: sentiment_training
     environment:
-      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      HF_MODEL_REPO: "CrisLap/sentiment-model"
+      HF_TOKEN: "${HF_TOKEN}"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
     volumes:
-      - ./models:/app/models
-      - ./mlflow:/mlflow:ro
-    depends_on:
-      mlflow:
-        condition: service_healthy
-    networks:
-      - mlops-network
-    restart: "no"
-    # Override command if needed: command: ["python", "training/train.py"]
+      - ./training:/train/training  # Mount local training scripts
+      - ./models:/train/models  # Persist trained models to host
+    # CMD is already defined in Dockerfile.training
 
-networks:
-  mlops-network:
-    driver: bridge
-
-volumes:
-  models:
-    driver: local
-  mlflow-data:
-    driver: local

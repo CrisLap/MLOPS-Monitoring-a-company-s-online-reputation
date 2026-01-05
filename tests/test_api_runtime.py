@@ -8,40 +8,43 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def reset_metrics():
-    # Pulizia delle metriche prima di ogni test
+    """Reset all Prometheus metrics to zero before and after tests."""
+    # Cleaning metrics before each test
     REQUEST_COUNT._value.set(0)
     for label in ["positive", "negative", "neutral"]:
         SENTIMENT_COUNTER.labels(label)._value.set(0)
     yield
-    # Pulizia post-test (opzionale)
+    # Post-test cleaning (optional)
     REQUEST_COUNT._value.set(0)
     for label in ["positive", "negative", "neutral"]:
         SENTIMENT_COUNTER.labels(label)._value.set(0)
 
 
 def test_metrics_endpoint_and_predict_updates_counters():
+    """Test that /predict updates Prometheus counters correctly."""
     payload = {"text": "I love this product!"}
 
-    # Controllo iniziale metrics
+    # Initial metrics check
     assert REQUEST_COUNT._value.get() == 0
 
-    # Chiamata predict
+    # Call predict
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
     data = response.json()
 
-    # Validazione struttura risposta
+    # Response structure validation
     assert "label" in data
     assert "score" in data
 
-    # Verifica aggiornamento metrics
+    # Check metrics update
     assert REQUEST_COUNT._value.get() == 1
-    # Controllo che il counter per la label incrementata
+    # check that the counter for the incremented label
     label = data["label"]
     assert SENTIMENT_COUNTER.labels(label)._value.get() == 1
 
 
 def test_multiple_predict_requests():
+    """Test that multiple /predict requests update Prometheus counters correctly."""
     payloads = [
         {"text": "I love this!"},
         {"text": "This is bad."},
@@ -51,10 +54,10 @@ def test_multiple_predict_requests():
     for payload in payloads:
         client.post("/predict", json=payload)
 
-    # REQUEST_COUNT deve essere 3
+    # REQUEST_COUNT must be 3
     assert REQUEST_COUNT._value.get() == 3
 
-    # SENTIMENT_COUNTER deve avere almeno 1 per ciascun label presente
+    # SENTIMENT_COUNTER must be at least 1 for each label
     metrics_values = {
         label: SENTIMENT_COUNTER.labels(label)._value.get()
         for label in ["positive", "neutral", "negative"]

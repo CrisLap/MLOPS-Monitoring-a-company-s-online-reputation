@@ -85,11 +85,11 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # Verifica se lo Space esiste (restituisce 200 se esiste, 404 se manca)
+          # Check if the Space exists (returns 200 if it exists, 404 if it is missing)
           STATUS=$(curl -o /dev/null -s -w "%{http_code}" https://huggingface.co/api/spaces/${{ env.HF_SPACE_REPO }})
           
           if [ "$STATUS" -eq 404 ]; then
-            echo "Lo Space non esiste. Creazione in corso..."
+            echo "Space does not exist. Creation in progress..."
             curl -X POST https://huggingface.co/api/repos/create \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
@@ -100,7 +100,7 @@ jobs:
                 "private": false
               }'
           else
-            echo "Lo Space esiste già. Procedo con l'aggiornamento del codice."
+            echo "Space already exists. I will proceed with updating the code.."
           fi
 
       - name: Push to Hugging Face
@@ -109,7 +109,7 @@ jobs:
         run: |
           git config --global user.email "ci@github.com"
           git config --global user.name "CI Bot"
-          # Eseguiamo il push: se lo Space è appena stato creato o già esiste, il codice verrà allineato
+          # We perform the push: if the Space has just been created or already exists, the code will be aligned.
           git push --force https://token:${HF_TOKEN}@huggingface.co/spaces/${{ env.HF_SPACE_REPO }} main
 
 

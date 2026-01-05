@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
 WORKDIR /app
-# Installa le dipendenze di sistema per compilare FastText
+# Install the system dependencies to compile FastText
 RUN apt-get update && apt-get install -y \
     build-essential \
     python3-dev \
