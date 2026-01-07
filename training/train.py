@@ -58,11 +58,15 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
     test_path = None
     try:
         # Preparing files
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as train_f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".txt"
+        ) as train_f:
             _to_fasttext_format(train_ds, train_f.name)
             train_path = train_f.name
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as test_f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".txt"
+        ) as test_f:
             _to_fasttext_format(test_ds, test_f.name)
             test_path = test_f.name
 
@@ -71,9 +75,7 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             # autotuneDuration is in seconds (e.g., 600 = 10 minutes)
             # We use test_path as the validation set to optimize parameters
             model = fasttext.train_supervised(
-                input=train_path,
-                autotuneValidationFile=test_path,
-                autotuneDuration=600 
+                input=train_path, autotuneValidationFile=test_path, autotuneDuration=600
             )
 
             # Retrieve the best parameters found by Autotune
@@ -83,9 +85,9 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
                 "lr": model.lr,
                 "wordNgrams": model.wordNgrams,
                 "dim": model.dim,
-                "autotune_used": True
+                "autotune_used": True,
             }
-            
+
             # Log the discovered best parameters to MLflow
             mlflow.log_params(best_params)
 
@@ -111,7 +113,9 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             model.save_model(str(MODEL_OUT))
             mlflow.log_artifact(str(MODEL_OUT))
 
-            logger.info(f"Autotune finished. Best Params: {best_params}. Metrics: {metrics}")
+            logger.info(
+                f"Autotune finished. Best Params: {best_params}. Metrics: {metrics}"
+            )
             return MODEL_OUT
 
     finally:
