@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from train import train
+from training import train
 
 
 def test_train_metrics_generation():
