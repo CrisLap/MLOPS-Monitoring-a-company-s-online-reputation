@@ -72,10 +72,10 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
 
         with mlflow.start_run():
             # --- AUTOTUNE IMPLEMENTATION ---
-            # autotuneDuration is in seconds (e.g., 600 = 10 minutes)
+            # autotuneDuration is in seconds (e.g., 300 = 5 minutes)
             # We use test_path as the validation set to optimize parameters
             model = fasttext.train_supervised(
-                input=train_path, autotuneValidationFile=test_path, autotuneDuration=600
+                input=train_path, autotuneValidationFile=test_path, autotuneDuration=300
             )
 
             # Retrieve the best parameters found by Autotune

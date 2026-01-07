@@ -11,7 +11,7 @@ class DummyDataset:
     """
     Dummy dataset for testing purposes.
     Provides minimal training and validation samples and supports
-    item access via attribute names.
+    item access via attribute names
     """
 
     def __init__(self):
