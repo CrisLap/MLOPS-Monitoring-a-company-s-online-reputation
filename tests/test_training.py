@@ -53,7 +53,7 @@ def test_full_train_flow_creates_model_and_logs(monkeypatch, tmp_path):
                 Path(path).write_text("FAKE MODEL")
 
             def test(self, path):
-            # Returns (number_of_examples, precision, recall)
+                # Returns (number_of_examples, precision, recall)
                 return (1, 0.8, 0.8)
 
         return M()
