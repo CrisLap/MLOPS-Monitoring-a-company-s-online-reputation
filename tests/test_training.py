@@ -49,12 +49,18 @@ def test_full_train_flow_creates_model_and_logs(monkeypatch, tmp_path):
     # fake fasttext
     def fake_train_supervised(input, **kwargs):
         class M:
+            def __init__(self):
+                # Add the attributes your train.py expects
+                self.epoch = 5
+                self.lr = 0.1
+                self.wordNgrams = 1
+                self.dim = 100
+            
             def save_model(self, path):
-                Path(path).write_text("FAKE MODEL")
-
-            def test(self, path):
-                # Returns (number_of_examples, precision, recall)
-                return (1, 0.8, 0.8)
+                # Ensure the file is actually created so downstream 
+                # artifact logging doesn't fail
+                with open(path, "w") as f:
+                    f.write("fake model data")
 
         return M()
 
