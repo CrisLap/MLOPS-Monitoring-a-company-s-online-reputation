@@ -43,7 +43,7 @@ def _to_fasttext_format(dataset_split, path):
             f.write(f"__label__{lbl} {text}\n")
 
 
-def train(epoch=5, lr=0.1, wordNgrams=2, dim=100):
+def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
     """Train the FastText model, evaluate on test data, and log metrics to MLflow."""
     if fasttext is None:
         raise ImportError(
@@ -122,10 +122,10 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epoch", type=int, default=5)
-    parser.add_argument("--lr", type=float, default=0.1)
+    parser.add_argument("--epoch", type=int, default=25)
+    parser.add_argument("--lr", type=float, default=0.2)
     parser.add_argument("--wordNgrams", type=int, default=2)
-    parser.add_argument("--dim", type=int, default=100)
+    parser.add_argument("--dim", type=int, default=150)
     parser.add_argument("--output", type=str, default=os.getenv("OUTPUT_DIR", "models"))
     args = parser.parse_args()
 
