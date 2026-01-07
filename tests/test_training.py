@@ -17,6 +17,7 @@ class DummyDataset:
     def __init__(self):
         self.train = [{"text": "Hello world", "label": 2}]
         self.validation = [{"text": "Okay", "label": 1}]
+        self.test = [{"label": 2, "text": "good"}]
 
     def __getitem__(self, k):
         return getattr(self, k)
@@ -50,6 +51,10 @@ def test_full_train_flow_creates_model_and_logs(monkeypatch, tmp_path):
         class M:
             def save_model(self, path):
                 Path(path).write_text("FAKE MODEL")
+
+            def test(self, path):
+            # Returns (number_of_examples, precision, recall)
+                return (1, 0.8, 0.8)
 
         return M()
 
