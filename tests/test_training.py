@@ -62,6 +62,11 @@ def test_full_train_flow_creates_model_and_logs(monkeypatch, tmp_path):
                 with open(path, "w") as f:
                     f.write("fake model data")
 
+            def test(self, path):
+                # Returns (number of samples, precision, recall)
+                # These values can be dummy numbers
+                return (100, 0.85, 0.85)
+
         return M()
 
     monkeypatch.setattr(
