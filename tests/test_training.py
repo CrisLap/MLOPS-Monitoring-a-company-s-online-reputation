@@ -60,7 +60,7 @@ def test_full_train_flow_creates_model_and_logs(monkeypatch, tmp_path):
                 # Ensure the file is actually created so downstream
                 # artifact logging doesn't fail
                 with open(path, "w") as f:
-                    f.write("fake model data")
+                    f.write("FAKE MODEL")
 
             def test(self, path):
                 # Returns (number of samples, precision, recall)
