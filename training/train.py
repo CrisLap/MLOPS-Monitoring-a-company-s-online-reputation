@@ -44,48 +44,52 @@ def _to_fasttext_format(dataset_split, path):
 
 
 def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
-    """Train the FastText model, evaluate on test data, and log metrics to MLflow."""
+    """Train the FastText model with Autotune, evaluate, and log to MLflow."""
     if fasttext is None:
-        raise ImportError(
-            "fasttext is not installed. Install it with: pip install fasttext"
-        )
+        raise ImportError("fasttext is not installed.")
 
-    # Loading Dataset
     dataset = load_data()
     train_ds = dataset["train"]
-    test_ds = dataset["test"]  # use the native split 'test'
+    test_ds = dataset["test"]
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     train_path = None
     test_path = None
     try:
-        # Preparing files for training
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".txt"
-        ) as train_f:
+        # Preparing files
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as train_f:
             _to_fasttext_format(train_ds, train_f.name)
             train_path = train_f.name
 
-        # Preparing files for testing
-        with tempfile.NamedTemporaryFile(
-            mode="w", delete=False, suffix=".txt"
-        ) as test_f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as test_f:
             _to_fasttext_format(test_ds, test_f.name)
             test_path = test_f.name
 
         with mlflow.start_run():
-            mlflow.log_params(
-                {"epoch": epoch, "lr": lr, "wordNgrams": wordNgrams, "dim": dim}
+            # --- AUTOTUNE IMPLEMENTATION ---
+            # autotuneDuration is in seconds (e.g., 600 = 10 minutes)
+            # We use test_path as the validation set to optimize parameters
+            model = fasttext.train_supervised(
+                input=train_path,
+                autotuneValidationFile=test_path,
+                autotuneDuration=600 
             )
 
-            # training
-            model = fasttext.train_supervised(
-                input=train_path, epoch=epoch, lr=lr, wordNgrams=wordNgrams, dim=dim
-            )
+            # Retrieve the best parameters found by Autotune
+            # Use getattr because these attributes might vary by version
+            best_params = {
+                "epoch": model.epoch,
+                "lr": model.lr,
+                "wordNgrams": model.wordNgrams,
+                "dim": model.dim,
+                "autotune_used": True
+            }
+            
+            # Log the discovered best parameters to MLflow
+            mlflow.log_params(best_params)
 
             # --- METRIC CALCULATION ---
-            # model.test() returns: number of examples, precision, recall
             samples, prec, rec = model.test(test_path)
             f1 = 2 * (prec * rec) / (prec + rec) if (prec + rec) > 0 else 0
 
@@ -96,20 +100,18 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
                 "f1_score": round(f1, 4),
             }
 
-            # Save JSON
+            # Save JSON and Log Artifacts (Rest of your original code)
             metrics_file = OUTPUT_DIR / "metrics.json"
             with open(metrics_file, "w") as f:
                 json.dump(metrics, f, indent=4)
 
-            # Logging MLflow
             mlflow.log_metrics(metrics)
             mlflow.log_artifact(str(metrics_file))
 
-            # Save model
             model.save_model(str(MODEL_OUT))
             mlflow.log_artifact(str(MODEL_OUT))
 
-            logger.info(f"Training finished. Metrics: {metrics}")
+            logger.info(f"Autotune finished. Best Params: {best_params}. Metrics: {metrics}")
             return MODEL_OUT
 
     finally:
