@@ -104,8 +104,8 @@ jobs:
               try:
                   api = HfApi(token=os.getenv("HF_TOKEN"))
                   api.upload_file(
-                      path_or_fileobj="models/sentiment_ft.bin",
-                      path_in_repo="sentiment_ft.bin",
+                      path_or_fileobj="models/sentiment_ft.ftz",
+                      path_in_repo="sentiment_ft.ftz",
                       repo_id=os.getenv("HF_MODEL_REPO"),
                       repo_type="model"
                   )

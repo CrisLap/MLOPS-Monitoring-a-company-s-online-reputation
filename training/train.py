@@ -75,7 +75,8 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             # autotuneDuration is in seconds (e.g., 300 = 5 minutes)
             # We use test_path as the validation set to optimize parameters
             model = fasttext.train_supervised(
-                input=train_path, autotuneValidationFile=test_path, autotuneDuration=300
+                input=train_path, autotuneValidationFile=test_path, autotuneDuration=300,
+                autotuneModelSize="50M"  # Force the model to weigh a maximum of 50MB
             )
 
             # Retrieve the best parameters found by Autotune
@@ -136,6 +137,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     OUTPUT_DIR = Path(args.output)
-    MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
+    MODEL_OUT = OUTPUT_DIR / "sentiment_ft.ftz"
 
     train(epoch=args.epoch, lr=args.lr, wordNgrams=args.wordNgrams, dim=args.dim)
