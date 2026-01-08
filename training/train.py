@@ -72,12 +72,12 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
 
         with mlflow.start_run():
             # --- AUTOTUNE IMPLEMENTATION ---
-            # autotuneDuration is in seconds (e.g., 1200 = 20 minutes)
+            # autotuneDuration is in seconds (e.g., 3600 = 60 minutes)
             # We use test_path as the validation set to optimize parameters
             model = fasttext.train_supervised(
                 input=train_path,
                 autotuneValidationFile=test_path,
-                autotuneDuration=1200,
+                autotuneDuration=3600,
                 autotuneModelSize="50M",  # Force the model to weigh a maximum of 50MB
             )
 
