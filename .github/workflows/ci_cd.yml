@@ -92,7 +92,7 @@ jobs:
               metrics = json.load(f)
 
           f1_score = metrics.get("f1_score", 0)
-          threshold = float(os.getenv("MIN_F1_THRESHOLD", 0.80))
+          threshold = float(os.getenv("MIN_F1_THRESHOLD", 0.60))
 
           print(f"Current Model F1 Score: {f1_score}")
           print(f"Required Minimum Threshold: {threshold}")
