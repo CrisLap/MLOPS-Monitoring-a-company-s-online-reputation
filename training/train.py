@@ -19,30 +19,31 @@ LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "models"))
 MODEL_OUT = OUTPUT_DIR / "sentiment_ft.btz"
 
+
 def clean_text(text):
     """
     Cleans and normalizes text to improve FastText training performance.
     """
     if not text:
         return ""
-    
+
     # Convert to lowercase
     text = text.lower()
-    
+
     # Remove URLs
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
-    
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE)
+
     # Isolate punctuation (e.g., "good!" becomes "good !")
     # This helps FastText treat the word and the punctuation as separate tokens
     text = re.sub(r"([.!?,'/()])", r" \1 ", text)
-    
+
     # Remove unnecessary special characters and numbers
     # Retains standard letters and common Italian accented characters
     text = re.sub(r"[^a-zA-ZàèìòùÀÈÌÒÙáéíóúÁÉÍÓÚ\s]", " ", text)
-    
+
     # Remove multiple spaces and newlines
     text = re.sub(r"\s+", " ", text).strip()
-    
+
     return text
 
 
@@ -107,7 +108,7 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
                 autotuneValidationFile=test_path,
                 autotuneDuration=7200,
                 autotuneModelSize="90M",  # Force the model to weigh a maximum of 90MB
-                loss ="ova"
+                loss="ova",
             )
 
             # Retrieve the best parameters found by Autotune
