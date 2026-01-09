@@ -40,7 +40,7 @@ def clean_text(text):
     # Remove "@user" tokens (specific to tweet_eval)
     text = text.replace("@user", "")
 
-    #Remove the '#' symbol but keep the word (e.g., "#happy" -> "happy")
+    # Remove the '#' symbol but keep the word (e.g., "#happy" -> "happy")
     text = text.replace("#", "")
 
     # Remove multiple spaces and newlines
