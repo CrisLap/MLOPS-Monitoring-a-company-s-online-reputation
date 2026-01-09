@@ -37,9 +37,11 @@ def clean_text(text):
     # This helps FastText treat the word and the punctuation as separate tokens
     text = re.sub(r"([.!?,'/()])", r" \1 ", text)
 
-    # Remove unnecessary special characters and numbers
-    # Retains standard letters and common Italian accented characters
-    text = re.sub(r"[^a-zA-ZàèìòùÀÈÌÒÙáéíóúÁÉÍÓÚ\s]", " ", text)
+    # Remove "@user" tokens (specific to tweet_eval)
+    text = text.replace("@user", "")
+
+    #Remove the '#' symbol but keep the word (e.g., "#happy" -> "happy")
+    text = text.replace("#", "")
 
     # Remove multiple spaces and newlines
     text = re.sub(r"\s+", " ", text).strip()
@@ -107,7 +109,7 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
                 input=train_path,
                 autotuneValidationFile=test_path,
                 autotuneDuration=7200,
-                autotuneModelSize="90M",  # Force the model to weigh a maximum of 90MB
+                autotuneModelSize="100M",  # Force the model to weigh a maximum of 100MB
                 loss="ova",
             )
 
