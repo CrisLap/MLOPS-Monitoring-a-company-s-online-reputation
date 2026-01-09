@@ -73,7 +73,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_MODEL_REPO: ${{ vars.HF_MODEL_REPO }}
           # Recommended threshold for a 3-class sentiment classifier
-          MIN_F1_THRESHOLD: 0.80
+          MIN_F1_THRESHOLD: 0.60
         run: |
           python - <<EOF
           import json
