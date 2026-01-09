@@ -4,6 +4,7 @@ import os
 import json
 from pathlib import Path
 import tempfile
+import re
 
 try:
     import fasttext
@@ -16,7 +17,33 @@ logger = logging.getLogger(__name__)
 
 LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "models"))
-MODEL_OUT = OUTPUT_DIR / "sentiment_ft.bin"
+MODEL_OUT = OUTPUT_DIR / "sentiment_ft.btz"
+
+def clean_text(text):
+    """
+    Cleans and normalizes text to improve FastText training performance.
+    """
+    if not text:
+        return ""
+    
+    # Convert to lowercase
+    text = text.lower()
+    
+    # Remove URLs
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+    
+    # Isolate punctuation (e.g., "good!" becomes "good !")
+    # This helps FastText treat the word and the punctuation as separate tokens
+    text = re.sub(r"([.!?,'/()])", r" \1 ", text)
+    
+    # Remove unnecessary special characters and numbers
+    # Retains standard letters and common Italian accented characters
+    text = re.sub(r"[^a-zA-ZàèìòùÀÈÌÒÙáéíóúÁÉÍÓÚ\s]", " ", text)
+    
+    # Remove multiple spaces and newlines
+    text = re.sub(r"\s+", " ", text).strip()
+    
+    return text
 
 
 def setup_mlflow():
@@ -39,7 +66,7 @@ def _to_fasttext_format(dataset_split, path):
     with open(path, "w", encoding="utf-8") as f:
         for item in dataset_split:
             lbl = LABEL_MAP.get(int(item["label"]), "neutral")
-            text = item["text"].replace("\n", " ").strip()
+            text = clean_text(item["text"])
             f.write(f"__label__{lbl} {text}\n")
 
 
@@ -72,13 +99,15 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
 
         with mlflow.start_run():
             # --- AUTOTUNE IMPLEMENTATION ---
-            # autotuneDuration is in seconds (e.g., 14400 = 240 minutes)
+            # autotuneDuration is in seconds (e.g., 7200 = 120 minutes)
             # We use test_path as the validation set to optimize parameters
+            # loss=“ova” (One-Vs-All) tends to perform better for F1-score on multiple classes
             model = fasttext.train_supervised(
                 input=train_path,
                 autotuneValidationFile=test_path,
-                autotuneDuration=14400,
+                autotuneDuration=7200,
                 autotuneModelSize="90M",  # Force the model to weigh a maximum of 90MB
+                loss ="ova"
             )
 
             # Retrieve the best parameters found by Autotune
