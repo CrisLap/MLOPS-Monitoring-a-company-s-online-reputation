@@ -14,7 +14,7 @@ try:
     api = HfApi()
     files = api.list_repo_files(repo_id=REPO_ID, token=TOKEN)
     model_files = sorted(
-        [f for f in files if f.startswith("sentiment_ft") and f.endswith(".bin")]
+        [f for f in files if f.startswith("sentiment_ft") and f.endswith(".ftz")]
     )
     latest_file = model_files[-1] if model_files else None
 
