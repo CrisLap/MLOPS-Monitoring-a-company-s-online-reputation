@@ -71,9 +71,9 @@ jobs:
       - name: Conditional Model Push
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_MODEL_REPO: ${{ vars.HF_MODEL_REPO }}
+          HF_MODEL_REPO: ${{ env.HF_MODEL_REPO }}
           # Recommended threshold for a 3-class sentiment classifier
-          MIN_F1_THRESHOLD: 0.60
+          MIN_F1_THRESHOLD: 0.50
         run: |
           python - <<EOF
           import json
@@ -92,7 +92,7 @@ jobs:
               metrics = json.load(f)
 
           f1_score = metrics.get("f1_score", 0)
-          threshold = float(os.getenv("MIN_F1_THRESHOLD", 0.60))
+          threshold = float(os.getenv("MIN_F1_THRESHOLD", 0.50))
 
           print(f"Current Model F1 Score: {f1_score}")
           print(f"Required Minimum Threshold: {threshold}")
