@@ -103,13 +103,17 @@ jobs:
               
               try:
                   api = HfApi(token=os.getenv("HF_TOKEN"))
+                  commit_sha = os.getenv("GITHUB_SHA")
                   api.upload_file(
                       path_or_fileobj="models/sentiment_ft.ftz",
                       path_in_repo="sentiment_ft.ftz",
                       repo_id=os.getenv("HF_MODEL_REPO"),
                       repo_type="model"
+                      commit_message=f"Model trained from commit {commit_sha}",
+                      commit_description=f"F1 Score: {f1_score}"
                   )
-                  print("Model successfully uploaded to Hugging Face Hub.")
+                  api.create_tag(repo_id=os.getenv("HF_MODEL_REPO"), tag=f"v-{commit_sha[:7]}", repo_type="model")
+                  print("Model successfully uploaded to Hugging Face Hub and versioned..")
               except Exception as e:
                   print(f"Upload failed: {e}")
                   exit(1)
@@ -160,6 +164,34 @@ jobs:
           # We perform the push: if the Space has just been created or already exists, the code will be aligned.
           git push --force https://token:${HF_TOKEN}@huggingface.co/spaces/${{ env.HF_SPACE_REPO }} main
 
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: deploy-space
+    steps:
+      - name: Wait for Space to be ready
+        run: sleep 60 # Allow time for the container to start up (adjustable)
+
+      - name: Health Check & Prediction Test
+        run: |
+          # Let's build the Space URL
+          # Note: Hugging Face transforms the space name into a URL: user-repo.hf.space
+          SPACE_URL="https://crislap-online-reputation-api.hf.space/predict"
+          
+          echo "Testing Space at $SPACE_URL"
+          
+          # API call attempt
+          RESPONSE=$(curl -s -w "%{http_code}" -X POST "$SPACE_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"text": "This product is fantastic!"}')
+          
+          HTTP_CODE=${RESPONSE: -3}
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "Integration Test Passed: API is responding correctly."
+          else
+            echo "Integration Test Failed with status: $HTTP_CODE"
+            exit(1)
+          fi
 
 
 
