@@ -39,7 +39,7 @@ def model_info():
 
         # Filter only sentiment_ft*.bin template files
         model_files = sorted(
-            [f for f in files if f.startswith("sentiment_ft") and f.endswith(".bin")]
+            [f for f in files if f.startswith("sentiment_ft") and f.endswith(".ftz")]
         )
 
         # Get the latest (most recent) file
