@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: '0 1 * * *' #daily
+    - cron: '0 1 * * 1' #weekly
 
 env:
   IMAGE_API: online-reputation-api

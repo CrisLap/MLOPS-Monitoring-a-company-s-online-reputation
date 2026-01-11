@@ -45,6 +45,7 @@ A compact sentiment analysis repository built with Hugging Face Transformers for
 - `Dockerfile` — API container image (runs on port 7860).
 - `Dockerfile.training` — Training container image.
 - `docker-compose.yml` — local development stack with API and training services.
+- `drift_check.py` — data drift check by tweet lenght and classes distribution
 - `.github/workflows/` — CI/CD automation:
   - `ci_cd.yml` — main CI/CD pipeline (validation, testing, Docker builds, model training with F1 threshold check, and Hugging Face deployment).
   - `cleanup_cache.yml` — cache cleanup workflow.
@@ -444,11 +445,11 @@ The workflow uses these environment variables:
 ---
 
 ## TODOs & Open questions ❓
-- Implement data drift detection and monitoring
 - Add model performance monitoring and alerting
 - Add automated model rollback mechanism
 - Implement A/B testing for model versions
 - Add model evaluation metrics tracking over time
+- Make data drift detection more dynamic
 
 ---
 
