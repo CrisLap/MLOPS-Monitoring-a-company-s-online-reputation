@@ -121,7 +121,7 @@ jobs:
               # Log the skip and prevent the upload
               print(f"Model F1 Score ({f1_score}) is below threshold ({threshold}).")
               print("Push skipped to prevent deploying a sub-optimal model.")
-              # Note: Use exit(1) here if you want the GitHub Action to mark the job as 'failed'
+              # Note: Use exit 1 here if you want the GitHub Action to mark the job as 'failed'
           EOF
 
   deploy-space:
@@ -190,7 +190,7 @@ jobs:
             echo "Integration Test Passed: API is responding correctly."
           else
             echo "Integration Test Failed with status: $HTTP_CODE"
-            exit(1)
+            exit 1
           fi
 
 
