@@ -108,7 +108,7 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             model = fasttext.train_supervised(
                 input=train_path,
                 autotuneValidationFile=test_path,
-                autotuneDuration=14400,
+                autotuneDuration=300,
                 autotuneModelSize="100M",  # Force the model to weigh a maximum of 100MB
                 loss="ova",
             )

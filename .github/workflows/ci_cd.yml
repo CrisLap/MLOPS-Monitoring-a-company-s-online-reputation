@@ -108,7 +108,7 @@ jobs:
                       path_or_fileobj="models/sentiment_ft.ftz",
                       path_in_repo="sentiment_ft.ftz",
                       repo_id=os.getenv("HF_MODEL_REPO"),
-                      repo_type="model"
+                      repo_type="model",
                       commit_message=f"Model trained from commit {commit_sha}",
                       commit_description=f"F1 Score: {f1_score}"
                   )
