@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 LABEL_MAP = {0: "negative", 1: "neutral", 2: "positive"}
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "models"))
-MODEL_OUT = OUTPUT_DIR / "sentiment_ft.btz"
+MODEL_OUT = OUTPUT_DIR / "sentiment_ft.ftz"
 
 
 def clean_text(text):
