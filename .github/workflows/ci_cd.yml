@@ -63,9 +63,12 @@ jobs:
           
       - name: Install dependencies
         run: pip install -r requirements.txt huggingface_hub
+      
+      - name: Run Data Drift Check
+        run: python drift_check.py
 
       - name: Train FastText model
-        # The script generates metrics.json and the model binary in the models/ folder
+        # The script generates metrics.json and the model .ftz in the models/ folder
         run: python -m training.train --epoch 5
 
       - name: Conditional Model Push
