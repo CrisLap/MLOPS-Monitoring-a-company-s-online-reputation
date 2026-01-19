@@ -5,7 +5,7 @@ on:
     types: [closed]
   workflow_dispatch:
   schedule:
-    - cron: '0 1 * * 1' #weekly
+    - cron: '37 3 * * 5' #weekly
 
 permissions:
   actions: write

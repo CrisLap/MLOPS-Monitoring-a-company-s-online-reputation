@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: '0 1 * * 1' #weekly
+    - cron: '37 3 * * 6' #weekly
 
 env:
   IMAGE_API: online-reputation-api
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: black --check .
+      - run: black --check -- diff
       - run: flake8 .
       - run: python -m pytest -v
 

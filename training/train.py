@@ -81,11 +81,13 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
     dataset = load_data()
     train_ds = dataset["train"]
     test_ds = dataset["test"]
+    val_ds = dataset["validation"]
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     train_path = None
     test_path = None
+    val_path = None
     try:
         # Preparing files
         with tempfile.NamedTemporaryFile(
@@ -100,6 +102,12 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             _to_fasttext_format(test_ds, test_f.name)
             test_path = test_f.name
 
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".txt"
+        ) as val_f:
+            _to_fasttext_format(val_ds, val_f.name)
+            val_path = val_f.name
+
         with mlflow.start_run():
             # --- AUTOTUNE IMPLEMENTATION ---
             # autotuneDuration is in seconds (e.g., 14400 = 240 minutes)
@@ -107,8 +115,8 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             # loss=“ova” (One-Vs-All) tends to perform better for F1-score on multiple classes
             model = fasttext.train_supervised(
                 input=train_path,
-                autotuneValidationFile=test_path,
-                autotuneDuration=600,
+                autotuneValidationFile=val_path,
+                autotuneDuration=1200,
                 autotuneModelSize="100M",  # Force the model to weigh a maximum of 100MB
                 loss="ova",
             )
