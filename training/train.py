@@ -119,7 +119,7 @@ def train(epoch=10, lr=0.05, wordNgrams=2, dim=100):
                 autotuneDuration=1200,
                 autotuneModelSize="100M",  # Force the model to weigh a maximum of 100MB
                 loss="ova",
-                verbose =2
+                verbose=2,
             )
 
             # Retrieve the best parameters found by Autotune
