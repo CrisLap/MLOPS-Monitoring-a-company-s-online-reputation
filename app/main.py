@@ -10,7 +10,6 @@ import numpy as np
 import time
 import os
 
-
 app = FastAPI(
     title="Online Reputation API",
     docs_url="/docs",
