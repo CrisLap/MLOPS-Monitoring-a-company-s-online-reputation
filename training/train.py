@@ -73,7 +73,7 @@ def _to_fasttext_format(dataset_split, path):
             f.write(f"__label__{lbl} {text}\n")
 
 
-def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
+def train(epoch=10, lr=0.05, wordNgrams=2, dim=100):
     """Train the FastText model with Autotune, evaluate, and log to MLflow."""
     if fasttext is None:
         raise ImportError("fasttext is not installed.")
@@ -119,6 +119,7 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
                 autotuneDuration=1200,
                 autotuneModelSize="100M",  # Force the model to weigh a maximum of 100MB
                 loss="ova",
+                verbose =2
             )
 
             # Retrieve the best parameters found by Autotune
@@ -162,7 +163,7 @@ def train(epoch=25, lr=0.2, wordNgrams=2, dim=150):
             return MODEL_OUT
 
     finally:
-        for p in [train_path, test_path]:
+        for p in [train_path, test_path, val_path]:
             if p and os.path.exists(p):
                 os.unlink(p)
 
@@ -171,10 +172,10 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epoch", type=int, default=25)
-    parser.add_argument("--lr", type=float, default=0.2)
+    parser.add_argument("--epoch", type=int, default=10)
+    parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument("--wordNgrams", type=int, default=2)
-    parser.add_argument("--dim", type=int, default=150)
+    parser.add_argument("--dim", type=int, default=100)
     parser.add_argument("--output", type=str, default=os.getenv("OUTPUT_DIR", "models"))
     args = parser.parse_args()
 
