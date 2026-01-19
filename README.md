@@ -108,11 +108,11 @@ python -m training.train
 
 Or with custom parameters:
 ```bash
-python -m training.train --epoch 25 --lr 0.2 --wordNgrams 2 --dim 150
+python -m training.train --epoch 5 --lr 0.05 --wordNgrams 2 --dim 100
 ```
 
 **Training Features:**
-- Uses FastText **autotune** for automatic hyperparameter optimization (4-hour duration)
+- Uses FastText **autotune** for automatic hyperparameter optimization (10-minutes duration)
 - Trains on TweetEval sentiment dataset
 - Evaluates on test set and computes F1 score, precision, recall
 - Saves model as `sentiment_ft.ftz` in `models/` directory

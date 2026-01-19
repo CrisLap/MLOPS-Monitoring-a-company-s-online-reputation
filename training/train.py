@@ -112,13 +112,12 @@ def train(epoch=10, lr=0.05, wordNgrams=2, dim=100):
             # --- AUTOTUNE IMPLEMENTATION ---
             # autotuneDuration is in seconds (e.g., 14400 = 240 minutes)
             # We use test_path as the validation set to optimize parameters
-            # loss=“ova” (One-Vs-All) tends to perform better for F1-score on multiple classes
             model = fasttext.train_supervised(
                 input=train_path,
                 autotuneValidationFile=val_path,
-                autotuneDuration=1200,
-                autotuneModelSize="100M",  # Force the model to weigh a maximum of 100MB
-                loss="ova",
+                autotuneDuration=600,
+                autotuneModelSize="50M",  # Force the model to weigh a maximum of 50MB
+                loss="softmax",
                 verbose=2,
             )
 
