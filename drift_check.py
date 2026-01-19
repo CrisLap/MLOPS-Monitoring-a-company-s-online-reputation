@@ -49,11 +49,12 @@ def run_drift_check():
             drift_flag = True
 
     if drift_flag:
-        print("STATUS: Data drift detected. Aborting pipeline.")
-        sys.exit(1)
+        print("drift_detected=true")
 
-    print("STATUS: Data integrity verified. No significant drift found.")
-    sys.exit(0)
+    else:
+        print("drift_detected=false")
+
+    return drift_flag
 
 
 if __name__ == "__main__":
