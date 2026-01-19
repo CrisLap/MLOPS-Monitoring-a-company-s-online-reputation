@@ -47,7 +47,7 @@ A compact sentiment analysis repository built with Hugging Face Transformers for
 - `docker-compose.yml` — local development stack with API and training services.
 - `drift_check.py` — data drift check by tweet lenght and classes distribution
 - `.github/workflows/` — CI/CD automation:
-  - `ci_cd.yml` — main CI/CD pipeline (validation, testing, Docker builds, model training with F1 threshold check, and Hugging Face deployment).
+  - `ci_cd.yml` — main CI/CD pipeline (validation, testing, Docker builds, model re-training with data-drift check and F1 threshold check, and Hugging Face deployment).
   - `cleanup_cache.yml` — cache cleanup workflow.
 - `tests/` — unit tests for API, training, and metrics.
 
@@ -207,6 +207,7 @@ The project integrates with Hugging Face for both model storage and API deployme
 
 - Trained models are automatically uploaded to a Hugging Face model repository
 - Default repository: `CrisLap/sentiment-model` (configurable via `HF_MODEL_REPO`)
+- Retraining starts only in case of data-drift
 - Models are uploaded during CI/CD **only if F1 score meets threshold** (default: 0.60)
 - Model files are saved as `.ftz` format (FastText compressed)
 - The API automatically downloads the latest `.ftz` model file from the repository on startup
@@ -372,6 +373,7 @@ The workflow runs on:
 4. **Train and Push Model**
    - Runs training script using FastText autotune optimization
    - Evaluates model and computes F1 score
+   - Retrain only in case of data-drift
    - **Conditionally uploads** trained model to Hugging Face repository only if F1 score ≥ 0.60
    - Model files are saved as `.ftz` format (FastText compressed)
    - Model is available at: `CrisLap/sentiment-model`
@@ -449,7 +451,6 @@ The workflow uses these environment variables:
 - Add automated model rollback mechanism
 - Implement A/B testing for model versions
 - Add model evaluation metrics tracking over time
-- Make data drift detection more dynamic
 
 ---
 
