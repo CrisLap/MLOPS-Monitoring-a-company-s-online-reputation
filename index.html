@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Online Reputation API - MLOps Project</title>
+</head>
+
+<body style="font-family: Arial, max-width: 900px; margin: 40px auto; line-height: 1.5;">
+
+  <h1>🚀 Online Reputation API</h1>
+
+  <p>
+    Monitoring and sentiment analysis system for tracking company reputation across social media using
+    a production-grade MLOps pipeline.
+  </p>
+
+  <hr>
+
+  <h2>🧠 Project Summary</h2>
+
+  <p>
+    This project implements an end-to-end MLOps system using FastText, MLflow, FastAPI, Docker, and
+    Hugging Face for deployment and model versioning.
+  </p>
+
+  <p>
+    The goal is to automatically analyze social media sentiment and monitor online reputation with
+    continuous training, drift detection, and CI/CD automation.
+  </p>
+
+  <hr>
+
+  <h2>🚀 Live Demo (Hugging Face Space)</h2>
+
+  <p>Try the deployed API and interactive demo:</p>
+
+  <a href="https://huggingface.co/spaces/CrisLap/online-reputation-api"
+     target="_blank"
+     style="display:inline-block;
+            padding:12px 18px;
+            background:#2563eb;
+            color:white;
+            border-radius:8px;
+            text-decoration:none;">
+    👉 Open Hugging Face Space
+  </a>
+
+  <hr>
+
+  <h2>🏗️ Architecture Overview</h2>
+
+  <ul>
+    <li><b>Training pipeline:</b> FastText + autotune + MLflow tracking</li>
+    <li><b>Serving layer:</b> FastAPI with /predict, /health, /metrics</li>
+    <li><b>Model versioning:</b> Hugging Face Model Hub (.ftz artifacts)</li>
+    <li><b>CI/CD:</b> GitHub Actions (train → test → deploy)</li>
+    <li><b>Monitoring:</b> Prometheus + Grafana dashboards</li>
+  </ul>
+
+  <hr>
+
+  <h2>📊 Key Features</h2>
+
+  <ul>
+    <li>Sentiment classification (positive / neutral / negative)</li>
+    <li>Data drift detection (tweet length + class distribution)</li>
+    <li>Automated retraining pipeline</li>
+    <li>F1-score gated deployment (threshold ≥ 0.60)</li>
+    <li>Dockerized API + training pipeline</li>
+  </ul>
+
+  <hr>
+
+  <h2>🔗 Links</h2>
+
+  <ul>
+    <li>
+      <a href="https://github.com/CrisLap/mlops_reputation" target="_blank">
+        GitHub Repository
+      </a>
+    </li>
+
+    <li>
+      <a href="https://huggingface.co/CrisLap/sentiment-model" target="_blank">
+        Model Repository (Hugging Face)
+      </a>
+    </li>
+
+    <li>
+      <a href="https://huggingface.co/spaces/CrisLap/online-reputation-api" target="_blank">
+        Live API Space
+      </a>
+    </li>
+  </ul>
+
+  <hr>
+
+  <h2>⚙️ Tech Stack</h2>
+
+  <p>
+    FastText • FastAPI • MLflow • Docker • GitHub Actions • Prometheus • Grafana • Hugging Face
+  </p>
+
+</body>
+</html>
